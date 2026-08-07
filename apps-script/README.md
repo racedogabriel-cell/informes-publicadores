@@ -22,14 +22,18 @@ No entrega teléfonos, contactos de emergencia u otros datos ajenos al contrato.
 |---|---|
 | `?action=reports` | Informes consolidados del período de trabajo |
 | `?action=system` | Estado global de la hoja `Sistema` |
-| `?action=openPeriod&periodo=YYYY-MM` | Abrir período (Portal General) |
+| `?action=openPeriod&periodo=YYYY-MM` | Abrir período (Portal General). Valida todo antes de escribir; LockService; no regenera si hay datos de un período anterior. |
 
 ## Apertura de período
 
-1. Lee `Sistema`. Si `EstadoPeriodo = ABIERTO`, error y **ninguna** modificación.
-2. Lee `Personas` (solo `Activo = Sí`).
-3. Regenera `Grupo 1` y `Grupo 2` (A–B desde padrón; C–F vacíos; `B3` espejo).
-4. Actualiza `Sistema` (`PeriodoActivo`, `EstadoPeriodo=ABIERTO`, `FechaApertura`).
+Orden seguro:
+
+1. Adquiere `LockService` (script lock).
+2. Valida `periodo=YYYY-MM`.
+3. Lee `Sistema`. Si `EstadoPeriodo = ABIERTO` → error, sin cambios.
+4. Valida `Personas` completo: IDs únicos, solo grupos `Grupo 1` / `Grupo 2`, filas coherentes.
+5. Inspecciona `Grupo 1` y `Grupo 2`: si hay personas o un `B3` de otro período → error, **sin regenerar**.
+6. Solo entonces regenera grupos (A–B desde padrón; C–F vacíos; `B3` espejo) y actualiza `Sistema`.
 
 El cierre y la copia a `Historial` aún no están implementados.
 
