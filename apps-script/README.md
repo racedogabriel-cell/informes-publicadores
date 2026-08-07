@@ -1,36 +1,42 @@
 # Conector de Google Sheets
 
-Este script atiende la lectura del período abierto (`Grupo 1` / `Grupo 2`) y el canal POST dry-run del Portal Encargados. No lee ni entrega teléfonos, contactos de emergencia u otros datos del padrón extendido.
+Este script atiende:
 
-El modelo de datos aprobado (`docs/09_MODELO_DATOS_SHEETS.md`) incorpora además las hojas `Personas` e `Historial`. Su uso operativo (regeneración de período, cierre a historial) corresponde al módulo Períodos y **no** está implementado en este conector hasta un sprint explícito.
+- lectura del período de trabajo (`Grupo 1` / `Grupo 2`);
+- lectura y apertura del ciclo mensual (`Sistema`, `Personas`);
+- canal POST dry-run del Portal Encargados.
+
+No entrega teléfonos, contactos de emergencia u otros datos ajenos al contrato.
 
 ## Instalación en la planilla
 
 1. Abrí la planilla y elegí **Extensiones → Apps Script**.
 2. Reemplazá el archivo `Code.gs` por el contenido de `Code.gs` de esta carpeta y guardá.
-3. Implementá (o actualizá) la aplicación web. La dirección final tendrá el formato `https://script.google.com/macros/s/.../exec`.
-4. Copiá esa dirección en `js/config.js` de la aplicación.
-
-Tras cada cambio en `Code.gs`, hay que **guardar y crear una nueva versión** del deployment web (o editar el deployment existente eligiendo la versión nueva). Si no, GitHub Pages seguirá hablando con el código anterior.
+3. Actualizá la aplicación web (**Nueva versión** del deployment).
+4. Confirmá que existan las hojas `Personas` (ID, Nombre, Grupo, Activo; datos desde fila 2) y, si falta, `Sistema` (se crea sola al primer uso).
+5. La URL `/exec` debe coincidir con `js/config.js`.
 
 ## Lectura (`doGet`)
 
-Consulta: `?action=reports`  
-Responde con ambos grupos, el mes seleccionado y las columnas de informes.
+| Acción | Uso |
+|---|---|
+| `?action=reports` | Informes consolidados del período de trabajo |
+| `?action=system` | Estado global de la hoja `Sistema` |
+| `?action=openPeriod&periodo=YYYY-MM` | Abrir período (Portal General) |
 
-## Escritura — fase dry-run (`doPost`)
+## Apertura de período
 
-El Portal Encargados envía un POST con JSON (`Content-Type: text/plain`) y `action=saveGroup`, `mode=dryRun`.
+1. Lee `Sistema`. Si `EstadoPeriodo = ABIERTO`, error y **ninguna** modificación.
+2. Lee `Personas` (solo `Activo = Sí`).
+3. Regenera `Grupo 1` y `Grupo 2` (A–B desde padrón; C–F vacíos; `B3` espejo).
+4. Actualiza `Sistema` (`PeriodoActivo`, `EstadoPeriodo=ABIERTO`, `FechaApertura`).
 
-En esta fase Apps Script:
+El cierre y la copia a `Historial` aún no están implementados.
 
-- recibe y valida la estructura del lote;
-- responde confirmando la recepción;
-- **no abre la planilla para escribir**;
-- **no modifica ninguna celda**.
+## Escritura Encargados — dry-run (`doPost`)
 
-La escritura real en columnas C–F queda para un sprint posterior, tras auditoría.
+`action=saveGroup` + `mode=dryRun`: valida recepción, **no escribe** celdas.
 
 ## Acceso seguro
 
-No publiques una aplicación web con acceso anónimo mientras la aplicación administrativa no tenga autenticación. El enlace de una PWA en GitHub Pages es público y no puede guardar un secreto en el navegador.
+No publiques una aplicación web con acceso anónimo mientras no haya autenticación. GitHub Pages no puede guardar un secreto en el navegador.

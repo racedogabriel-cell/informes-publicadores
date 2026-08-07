@@ -92,6 +92,30 @@
   display:flex;
   flex-wrap:wrap;
   gap:10px;
+  align-items:flex-end;
+}
+.periodos-open-field {
+  display:grid;
+  gap:4px;
+  font-size:.72rem;
+  font-weight:700;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+  color:var(--muted);
+}
+.periodos-open-input {
+  min-width:8.5rem;
+  padding:9px 10px;
+  border:1px solid var(--line);
+  border-radius:9px;
+  background:#fff;
+  color:var(--ink);
+  font-weight:650;
+  letter-spacing:.02em;
+}
+.periodos-system-meta {
+  margin:10px 0 0;
+  font-size:.82rem;
 }
 .button-secondary {
   background:#fff;

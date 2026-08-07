@@ -1,59 +1,11 @@
 /**
  * Módulo: Períodos
- * Objetivo: pantalla de administración del ciclo mensual (UI + arquitectura preparada)
+ * Objetivo: administrar el ciclo mensual; apertura real vía action=openPeriod
  * Estado: En desarrollo
- * Sprint: Sprint Períodos — interfaz de administración (sin acciones en Sheets)
- *
- * Esta etapa no llama a Apps Script ni modifica Google Sheets / Historial.
+ * Sprint: Sprint — Motor de Períodos (apertura; sin cierre)
  */
 
-/** Datos de presentación locales. Sustituir por lectura real en un sprint posterior. */
-const DEMO_PERIODS = [
-  {
-    id: '2026-06',
-    label: 'Junio 2026',
-    status: 'Cerrado',
-    closedAt: '2026-07-01',
-  },
-  {
-    id: '2026-07',
-    label: 'Julio 2026',
-    status: 'Cerrado',
-    closedAt: '2026-08-01',
-  },
-  {
-    id: '2026-08',
-    label: 'Agosto 2026',
-    status: 'Abierto',
-    closedAt: null,
-  },
-];
-
-/**
- * Punto de extensión: apertura real (Apps Script / Sheets).
- * No ejecuta escritura en esta etapa.
- */
-export async function requestOpenPeriod() {
-  return {
-    ok: false,
-    deferred: true,
-    message:
-      'Abrir período está preparado en la interfaz. La apertura real (regenerar Grupo 1/2 desde Personas) se implementará tras la auditoría. Google Sheets no fue modificado.',
-  };
-}
-
-/**
- * Punto de extensión: cierre real (copiar a Historial).
- * No ejecuta escritura en esta etapa.
- */
-export async function requestClosePeriod() {
-  return {
-    ok: false,
-    deferred: true,
-    message:
-      'Cerrar período está preparado en la interfaz. El cierre real (copiar a Historial) se implementará tras la auditoría. Google Sheets no fue modificado.',
-  };
-}
+import { getSystemState, openPeriod } from './sheets.js';
 
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>'"]/g, (char) => ({
@@ -65,22 +17,68 @@ function escapeHtml(value) {
   })[char]);
 }
 
-function formatClosedAt(value) {
+function defaultPeriodKey() {
+  const now = new Date();
+  const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  return `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function labelFromPeriodKey(key) {
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(key || '')) return key || '—';
+  const [year, month] = key.split('-').map(Number);
+  const date = new Date(year, month - 1, 1);
+  return new Intl.DateTimeFormat('es-AR', { month: 'long', year: 'numeric' })
+    .format(date)
+    .replace(/^./, (char) => char.toUpperCase());
+}
+
+function formatTimestamp(value) {
   if (!value) return '—';
-  const date = new Date(`${value}T12:00:00`);
+  const date = new Date(value);
   if (Number.isNaN(date.getTime())) return escapeHtml(value);
   return escapeHtml(
-    new Intl.DateTimeFormat('es-AR', { day: 'numeric', month: 'short', year: 'numeric' }).format(date),
+    new Intl.DateTimeFormat('es-AR', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(date),
   );
 }
 
-function getActivePeriod(periods) {
-  return periods.find((item) => item.status === 'Abierto') || null;
+function isOpenEstado(estado) {
+  return String(estado || '')
+    .trim()
+    .toUpperCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') === 'ABIERTO';
 }
 
 function statusBadge(status) {
-  const tone = status === 'Abierto' ? 'is-open' : 'is-closed';
-  return `<span class="periodos-badge ${tone}">${escapeHtml(status)}</span>`;
+  const open = status === 'Abierto' || status === 'ABIERTO';
+  const tone = open ? 'is-open' : 'is-closed';
+  const label = open ? 'Abierto' : 'Cerrado';
+  return `<span class="periodos-badge ${tone}">${label}</span>`;
+}
+
+function buildPeriodsFromSystem(system, lastOpenResult) {
+  const periods = [];
+  const activo = system?.PeriodoActivo || '';
+  const open = isOpenEstado(system?.EstadoPeriodo);
+
+  if (activo) {
+    periods.push({
+      id: activo,
+      label: labelFromPeriodKey(activo),
+      status: open ? 'Abierto' : 'Cerrado',
+      closedAt: open ? null : system?.FechaCierre || null,
+      openedAt: system?.FechaApertura || null,
+      counts: lastOpenResult?.grupos || null,
+    });
+  }
+
+  return periods;
 }
 
 export function periodsView() {
@@ -91,7 +89,7 @@ export function bindPeriods() {
   const root = document.querySelector('#periodos-view');
   if (!root) return;
 
-  renderPeriodsScreen(root, DEMO_PERIODS);
+  let lastOpenResult = null;
 
   root.addEventListener('click', async (event) => {
     const button = event.target.closest('[data-period-action]');
@@ -99,46 +97,129 @@ export function bindPeriods() {
 
     const action = button.dataset.periodAction;
     const feedback = root.querySelector('#periodos-feedback');
-    button.disabled = true;
 
-    try {
-      const result = action === 'open' ? await requestOpenPeriod() : await requestClosePeriod();
+    if (action === 'close') {
       if (feedback) {
         feedback.hidden = false;
-        feedback.dataset.tone = result.deferred ? 'info' : result.ok ? 'success' : 'error';
-        feedback.textContent = result.message;
+        feedback.dataset.tone = 'info';
+        feedback.textContent =
+          'El cierre de período se implementará en el próximo sprint. Google Sheets no fue modificado.';
+      }
+      return;
+    }
+
+    if (action !== 'open') return;
+
+    const input = root.querySelector('#periodos-open-key');
+    const periodo = (input?.value || '').trim();
+    button.disabled = true;
+    if (feedback) {
+      feedback.hidden = false;
+      feedback.dataset.tone = 'info';
+      feedback.textContent = 'Abriendo período…';
+    }
+
+    try {
+      const result = await openPeriod(periodo);
+      if (!result?.ok) {
+        if (feedback) {
+          feedback.hidden = false;
+          feedback.dataset.tone = 'error';
+          feedback.textContent = result?.message || result?.error || 'No se pudo abrir el período.';
+        }
+        return;
+      }
+
+      lastOpenResult = result;
+      await refresh(root, lastOpenResult);
+      const feedbackAfter = root.querySelector('#periodos-feedback');
+      if (feedbackAfter) {
+        feedbackAfter.hidden = false;
+        feedbackAfter.dataset.tone = 'success';
+        const g1 = result.grupos?.['Grupo 1'] ?? '—';
+        const g2 = result.grupos?.['Grupo 2'] ?? '—';
+        feedbackAfter.textContent = `${result.message} Grupo 1: ${g1} · Grupo 2: ${g2}.`;
       }
     } catch (error) {
       if (feedback) {
         feedback.hidden = false;
         feedback.dataset.tone = 'error';
-        feedback.textContent = error.message || 'No se pudo completar la acción.';
+        feedback.textContent = error.message || 'No se pudo abrir el período.';
       }
     } finally {
-      syncActionButtons(root, DEMO_PERIODS);
+      const openBtn = root.querySelector('[data-period-action="open"]');
+      const closeBtn = root.querySelector('[data-period-action="close"]');
+      const hasOpen = Boolean(root.querySelector('[data-has-open="true"]'));
+      if (openBtn) openBtn.disabled = hasOpen;
+      if (closeBtn) closeBtn.disabled = !hasOpen;
     }
   });
+
+  refresh(root, lastOpenResult);
 }
 
-function renderPeriodsScreen(root, periods) {
-  const active = getActivePeriod(periods);
-  const hasOpen = Boolean(active);
+async function refresh(root, lastOpenResult) {
+  root.innerHTML = `<p class="periodos-feedback" data-tone="info" role="status">Sincronizando estado del sistema…</p>`;
+
+  try {
+    const system = await getSystemState();
+    if (!system?.ok && system?.ok !== true && system?.error) {
+      throw new Error(system.message || system.error);
+    }
+    renderPeriodsScreen(root, system, lastOpenResult);
+  } catch (error) {
+    root.innerHTML = `
+      <p class="periodos-feedback" data-tone="error" role="status">
+        ${escapeHtml(error.message || 'No se pudo leer la hoja Sistema.')}
+      </p>
+      <p class="muted">
+        Verificá que Apps Script tenga la versión con action=system / action=openPeriod
+        y que exista la hoja Sistema en la planilla.
+      </p>
+    `;
+  }
+}
+
+function renderPeriodsScreen(root, system, lastOpenResult) {
+  const periods = buildPeriodsFromSystem(system, lastOpenResult);
+  const open = isOpenEstado(system?.EstadoPeriodo);
+  const activeKey = system?.PeriodoActivo || '';
+  const activeLabel = activeKey ? labelFromPeriodKey(activeKey) : 'Ninguno';
+  const suggested = defaultPeriodKey();
 
   root.innerHTML = `
-    <section class="periodos-hero" aria-label="Período activo">
+    <section class="periodos-hero" aria-label="Período activo" data-has-open="${open ? 'true' : 'false'}">
       <div>
         <p class="periodos-kicker">Período activo</p>
-        <h2 class="periodos-active-label">${escapeHtml(active?.label || 'Ninguno')}</h2>
+        <h2 class="periodos-active-label">${escapeHtml(activeLabel)}</h2>
         <p class="periodos-active-meta">
-          ${active ? statusBadge(active.status) : statusBadge('Cerrado')}
-          <span class="muted">${hasOpen ? 'Listo para la carga de informes' : 'No hay un período abierto'}</span>
+          ${statusBadge(open ? 'Abierto' : 'Cerrado')}
+          <span class="muted">${open ? 'Listo para la carga de informes' : 'No hay un período abierto'}</span>
+        </p>
+        <p class="periodos-system-meta muted">
+          Apertura: ${formatTimestamp(system?.FechaApertura)}
+          · Cierre: ${formatTimestamp(system?.FechaCierre)}
+          · Versión: ${escapeHtml(system?.Version || '—')}
         </p>
       </div>
       <div class="periodos-actions">
-        <button type="button" class="button" data-period-action="open" ${hasOpen ? 'disabled' : ''}>
+        <label class="periodos-open-field">
+          <span>Nuevo período</span>
+          <input
+            id="periodos-open-key"
+            class="periodos-open-input"
+            type="text"
+            inputmode="numeric"
+            placeholder="YYYY-MM"
+            value="${escapeHtml(open ? '' : suggested)}"
+            ${open ? 'disabled' : ''}
+            aria-label="Clave del período a abrir (YYYY-MM)"
+          />
+        </label>
+        <button type="button" class="button" data-period-action="open" ${open ? 'disabled' : ''}>
           Abrir nuevo período
         </button>
-        <button type="button" class="button button-secondary" data-period-action="close" ${hasOpen ? '' : 'disabled'}>
+        <button type="button" class="button button-secondary" data-period-action="close" ${open ? '' : 'disabled'}>
           Cerrar período
         </button>
       </div>
@@ -149,7 +230,7 @@ function renderPeriodsScreen(root, periods) {
     <section class="panel card periodos-list-panel" aria-label="Listado de períodos">
       <div class="panel-head">
         <h2>Períodos</h2>
-        <span class="muted">${periods.length} registrados</span>
+        <span class="muted">${periods.length ? periods.length + ' en Sistema' : 'Sin período registrado'}</span>
       </div>
       <div class="table-wrap">
         <table class="data-table periodos-table">
@@ -158,37 +239,40 @@ function renderPeriodsScreen(root, periods) {
               <th>Período</th>
               <th>Estado</th>
               <th>Activo</th>
+              <th>Apertura</th>
               <th>Cierre</th>
             </tr>
           </thead>
           <tbody>
-            ${periods
-              .map((item) => {
-                const isActive = item.status === 'Abierto';
-                return `
-                  <tr class="${isActive ? 'is-active-period' : ''}">
-                    <td class="periodos-name">${escapeHtml(item.label)}</td>
-                    <td>${statusBadge(item.status)}</td>
-                    <td>${isActive ? 'Sí' : 'No'}</td>
-                    <td>${formatClosedAt(item.closedAt)}</td>
-                  </tr>
-                `;
-              })
-              .join('')}
+            ${
+              periods.length
+                ? periods
+                    .map((item) => {
+                      const isActive = item.status === 'Abierto';
+                      return `
+                        <tr class="${isActive ? 'is-active-period' : ''}">
+                          <td class="periodos-name">${escapeHtml(item.label)} <span class="muted">(${escapeHtml(item.id)})</span></td>
+                          <td>${statusBadge(item.status)}</td>
+                          <td>${isActive ? 'Sí' : 'No'}</td>
+                          <td>${formatTimestamp(item.openedAt)}</td>
+                          <td>${formatTimestamp(item.closedAt)}</td>
+                        </tr>
+                      `;
+                    })
+                    .join('')
+                : `<tr><td colspan="5" class="muted">Todavía no hay un período en la hoja Sistema.</td></tr>`
+            }
           </tbody>
         </table>
       </div>
+      ${
+        lastOpenResult?.grupos
+          ? `<p class="periodos-note muted">Última apertura: Grupo 1 = ${escapeHtml(lastOpenResult.grupos['Grupo 1'])}, Grupo 2 = ${escapeHtml(lastOpenResult.grupos['Grupo 2'])}.</p>`
+          : ''
+      }
       <p class="periodos-note muted">
-        Vista de administración. Las acciones aún no modifican Google Sheets, Historial ni las hojas de grupo.
+        La apertura regenera Grupo 1/2 desde Personas y actualiza Sistema. El cierre aún no está implementado.
       </p>
     </section>
   `;
-}
-
-function syncActionButtons(root, periods) {
-  const hasOpen = Boolean(getActivePeriod(periods));
-  const openBtn = root.querySelector('[data-period-action="open"]');
-  const closeBtn = root.querySelector('[data-period-action="close"]');
-  if (openBtn) openBtn.disabled = hasOpen;
-  if (closeBtn) closeBtn.disabled = !hasOpen;
 }
