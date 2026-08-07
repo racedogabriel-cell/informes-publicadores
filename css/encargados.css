@@ -268,6 +268,18 @@
   text-align: center;
 }
 
+.encargados-table tr.is-row-locked {
+  background: #f3f6f4;
+}
+
+.encargados-table tr.is-row-locked .field-hours,
+.encargados-table tr.is-row-locked .field-studies,
+.encargados-table tr.is-row-locked .field-comments {
+  opacity: 0.55;
+  cursor: not-allowed;
+  background: #e8eee9;
+}
+
 @media (max-width: 900px) {
   .encargados-topbar {
     padding: 6px 10px;

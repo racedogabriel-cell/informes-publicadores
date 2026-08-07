@@ -5,6 +5,11 @@
  * Grupo determinado (temporal vía query):
  * - ?grupo=1 | ?grupo=2
  * - ausente o inválido → error; no se carga ni se permite guardar
+ *
+ * Horas según privilegio:
+ * - Publicador → Sí/No
+ * - Auxiliar / Regular → numérico
+ * - Vacío / Inactivo → fila de informe deshabilitada (privilegio sigue editable)
  */
 
 import { getMonthlyReports, getSystemState, postSaveGroup } from './sheets.js';
@@ -63,25 +68,74 @@ function privilegeOptions(selected) {
   }).join('');
 }
 
+function normalizeYesNo(value) {
+  const token = String(value || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+  if (token === 'si' || token === 's' || token === 'yes' || token === 'true' || token === '1') {
+    return 'Sí';
+  }
+  if (token === 'no' || token === 'n' || token === 'false' || token === '0') return 'No';
+  return '';
+}
+
+function isRowLocked(privilegio) {
+  return privilegio === '' || privilegio === 'Inactivo';
+}
+
+function hoursControlHtml(privilegio, horas, nombre) {
+  const label = `Horas de ${escapeHtml(nombre)}`;
+
+  if (privilegio === 'Publicador') {
+    const current = normalizeYesNo(horas);
+    const options = [
+      { value: '', label: '—' },
+      { value: 'Sí', label: 'Sí' },
+      { value: 'No', label: 'No' },
+    ]
+      .map((item) => {
+        const selected = item.value === current ? ' selected' : '';
+        return `<option value="${escapeHtml(item.value)}"${selected}>${escapeHtml(item.label)}</option>`;
+      })
+      .join('');
+    return `<select class="field-input field-select field-hours" aria-label="${label}">${options}</select>`;
+  }
+
+  if (privilegio === 'Auxiliar' || privilegio === 'Regular') {
+    const safe = String(horas || '').trim();
+    const value = /^-?\d+([.,]\d+)?$/.test(safe) ? safe : '';
+    return `<input class="field-input field-hours" type="text" inputmode="decimal" value="${escapeHtml(value)}" aria-label="${label}" />`;
+  }
+
+  return `<input class="field-input field-hours" type="text" value="" aria-label="${label}" disabled />`;
+}
+
 function renderRow(person) {
   const nombre = person.nombre || '';
+  const privilegio = String(person.privilegio || '').trim();
+  const locked = isRowLocked(privilegio);
+  const disabledAttr = locked ? ' disabled' : '';
+  const estudiosValue = privilegio === '' ? '' : person.estudios;
+  const comentariosValue = privilegio === '' ? '' : person.comentarios;
   return `
-    <tr data-id="${escapeHtml(person.id)}">
+    <tr data-id="${escapeHtml(person.id)}" class="${locked ? 'is-row-locked' : ''}">
       <td class="col-id muted">${escapeHtml(person.id)}</td>
       <td class="col-name person-name" title="${escapeHtml(nombre)}">${escapeHtml(nombre)}</td>
       <td class="col-privilege">
-        <select class="field-input field-select" aria-label="Privilegio de ${escapeHtml(nombre)}">
-          ${privilegeOptions(person.privilegio)}
+        <select class="field-input field-select field-privilege" aria-label="Privilegio de ${escapeHtml(nombre)}">
+          ${privilegeOptions(privilegio)}
         </select>
       </td>
       <td class="col-hours">
-        <input class="field-input field-hours" type="text" value="${escapeHtml(person.horas)}" aria-label="Horas de ${escapeHtml(nombre)}" />
+        ${hoursControlHtml(privilegio, person.horas, nombre)}
       </td>
       <td class="col-studies">
-        <input class="field-input field-studies" type="text" value="${escapeHtml(person.estudios)}" aria-label="Estudios de ${escapeHtml(nombre)}" />
+        <input class="field-input field-studies" type="text" inputmode="numeric" value="${escapeHtml(estudiosValue)}" aria-label="Estudios de ${escapeHtml(nombre)}"${disabledAttr} />
       </td>
       <td class="col-comments">
-        <input class="field-input field-comments" type="text" value="${escapeHtml(person.comentarios)}" aria-label="Comentarios de ${escapeHtml(nombre)}" />
+        <input class="field-input field-comments" type="text" value="${escapeHtml(comentariosValue)}" aria-label="Comentarios de ${escapeHtml(nombre)}"${disabledAttr} />
       </td>
     </tr>
   `;
@@ -109,6 +163,53 @@ function renderTable(people) {
       </div>
     </section>
   `;
+}
+
+function readHoursValue(row) {
+  const hoursEl = row.querySelector('.field-hours');
+  if (!hoursEl) return '';
+  return String(hoursEl.value ?? '').trim();
+}
+
+function sanitizeNumericHoursInput(event) {
+  const input = event.target;
+  if (!(input instanceof HTMLInputElement)) return;
+  if (!input.classList.contains('field-hours')) return;
+  const row = input.closest('tr');
+  const privilegio = row?.querySelector('.field-privilege')?.value ?? '';
+  if (privilegio !== 'Auxiliar' && privilegio !== 'Regular') return;
+
+  const cleaned = input.value.replace(/[^\d.,]/g, '');
+  if (cleaned !== input.value) input.value = cleaned;
+}
+
+function applyRowMode(row) {
+  const privilegio = row.querySelector('.field-privilege')?.value ?? '';
+  const nombre = row.querySelector('.person-name')?.textContent || '';
+  const hoursCell = row.querySelector('.col-hours');
+  const studies = row.querySelector('.field-studies');
+  const comments = row.querySelector('.field-comments');
+  if (!hoursCell || !studies || !comments) return;
+
+  const previousHours = readHoursValue(row);
+  const locked = isRowLocked(privilegio);
+  row.classList.toggle('is-row-locked', locked);
+
+  hoursCell.innerHTML = hoursControlHtml(privilegio, locked ? '' : previousHours, nombre);
+  studies.disabled = locked;
+  comments.disabled = locked;
+  if (privilegio === '') {
+    studies.value = '';
+    comments.value = '';
+  }
+}
+
+function bindTableInteractions(root) {
+  root.querySelectorAll('.encargados-table tbody tr').forEach((row) => {
+    const privilege = row.querySelector('.field-privilege');
+    privilege?.addEventListener('change', () => applyRowMode(row));
+  });
+  root.addEventListener('input', sanitizeNumericHoursInput);
 }
 
 function setContext(grupo, mes) {
@@ -186,10 +287,12 @@ function collectPayload() {
   const rows = document.querySelectorAll('.encargados-table tbody tr');
   const personas = Array.from(rows).map((row) => {
     const id = row.getAttribute('data-id') || '';
-    const privilegio = row.querySelector('.field-select')?.value ?? '';
-    const horas = row.querySelector('.field-hours')?.value ?? '';
-    const estudios = row.querySelector('.field-studies')?.value ?? '';
-    const comentarios = row.querySelector('.field-comments')?.value ?? '';
+    const privilegio = row.querySelector('.field-privilege')?.value ?? '';
+    const horas = isRowLocked(privilegio) ? '' : readHoursValue(row);
+    const estudios =
+      privilegio === '' ? '' : row.querySelector('.field-studies')?.value ?? '';
+    const comentarios =
+      privilegio === '' ? '' : row.querySelector('.field-comments')?.value ?? '';
     return { id, privilegio, horas, estudios, comentarios };
   });
 
@@ -305,6 +408,7 @@ async function loadGroup(grupo, { keepFeedback = false } = {}) {
   sessionContext = { grupo: group.grupo, mes: mesLabel, periodo };
   setContext(group.grupo, mesLabel);
   root.innerHTML = renderTable(people);
+  bindTableInteractions(root);
   setSaveEnabled(true);
 }
 
