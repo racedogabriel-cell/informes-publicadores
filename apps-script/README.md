@@ -58,6 +58,19 @@ Orden seguro:
 
 No modifica ID, Nombre, B3, Historial, Personas ni el ciclo de períodos.
 
+## Migración a hoja Personas (una sola vez)
+
+Archivo: `Migration.gs` (no es parte de la PWA).
+
+1. En la planilla: **Extensiones → Apps Script**.
+2. Creá un archivo **Migration.gs** y pegá el contenido del repo.
+3. Guardá.
+4. (Opcional) Ejecutá primero `simularMigracionPersonasDesdeGrupos` para ver el informe sin escribir.
+5. Ejecutá `migrarPersonasDesdeGrupos`.
+6. Revisá la hoja **Migracion_Informe** y los registros de ejecución.
+
+No modifica `Grupo 1` ni `Grupo 2`. Si `Personas` ya tiene datos, no vuelve a correr.
+
 ## Acceso seguro
 
 No publiques una aplicación web con acceso anónimo mientras no haya autenticación. GitHub Pages no puede guardar un secreto en el navegador.
