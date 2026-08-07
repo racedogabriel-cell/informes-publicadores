@@ -7,8 +7,8 @@
  * - ausente o inválido → error; no se carga ni se permite guardar
  */
 
-import { getMonthlyReports, getSystemState, postSaveGroup } from '../../js/sheets.js';
-import { isEstadoAbierto, periodKeyToLabel } from '../../js/period.js';
+import { getMonthlyReports, getSystemState, postSaveGroup } from './sheets.js';
+import { isEstadoAbierto, periodKeyToLabel } from './period.js';
 
 const PRIVILEGIOS = ['', 'Publicador', 'Auxiliar', 'Regular', 'Inactivo'];
 

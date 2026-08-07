@@ -1,4 +1,4 @@
-const CACHE_NAME = 'informes-publicadores-v7';
+const CACHE_NAME = 'informes-publicadores-v8';
 const APP_SHELL = [
   './',
   './index.html',
@@ -32,5 +32,27 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
+
+  const url = new URL(event.request.url);
+  const isSameOrigin = url.origin === self.location.origin;
+  const isScriptOrModule =
+    event.request.destination === 'script' ||
+    /\.m?js$/i.test(url.pathname) ||
+    url.pathname.includes('/encargados/');
+
+  // JS y Portal Encargados: red primero para no quedar pegados a módulos viejos.
+  if (isSameOrigin && isScriptOrModule) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          return response;
+        })
+        .catch(() => caches.match(event.request)),
+    );
+    return;
+  }
+
   event.respondWith(caches.match(event.request).then((cached) => cached || fetch(event.request)));
 });
