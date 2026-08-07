@@ -44,7 +44,7 @@ export async function getSystemState() {
 
 /**
  * Abre un período (Portal General → Apps Script).
- * @param {string} periodo Clave YYYY-MM
+ * @param {string} periodo Clave YYYY-MM (mes vencido, p. ej. 2026-07)
  */
 export async function openPeriod(periodo) {
   if (!GOOGLE_REPORTS_ENDPOINT) {
@@ -61,6 +61,26 @@ export async function openPeriod(periodo) {
     response = await fetch(
       `${GOOGLE_REPORTS_ENDPOINT}?action=openPeriod&periodo=${encodeURIComponent(key)}`,
     );
+  } catch {
+    throw new Error('No hay conexión con el endpoint de Apps Script.');
+  }
+
+  if (!response.ok) {
+    throw new Error(`El endpoint respondió con error HTTP ${response.status}.`);
+  }
+
+  return parseJsonResponse(response);
+}
+
+/** Cierra el período abierto (Portal General → Apps Script). */
+export async function closePeriod() {
+  if (!GOOGLE_REPORTS_ENDPOINT) {
+    throw new Error('El conector de Apps Script no está configurado.');
+  }
+
+  let response;
+  try {
+    response = await fetch(`${GOOGLE_REPORTS_ENDPOINT}?action=closePeriod`);
   } catch {
     throw new Error('No hay conexión con el endpoint de Apps Script.');
   }

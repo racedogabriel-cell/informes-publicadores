@@ -6,6 +6,7 @@
  *   ?action=reports
  *   ?action=system
  *   ?action=openPeriod&periodo=YYYY-MM
+ *   ?action=closePeriod
  * doPost:
  *   saveGroup (dry-run; sin escritura)
  */
@@ -13,6 +14,18 @@ const SPREADSHEET_ID = '1BcZ31qor91cGlrtRSEO6XsZDFiSVtP4PCZ5F910xoBs';
 const GROUP_SHEETS = ['Grupo 1', 'Grupo 2'];
 const PERSONAS_SHEET = 'Personas';
 const SISTEMA_SHEET = 'Sistema';
+const HISTORIAL_SHEET = 'Historial';
+const HISTORIAL_HEADERS = [
+  'Periodo',
+  'Grupo',
+  'ID',
+  'Nombre',
+  'Privilegio',
+  'Horas',
+  'Estudios',
+  'Comentarios',
+  'FechaCierre',
+];
 const SAVE_ACTION = 'saveGroup';
 const DRY_RUN_MODE = 'dryRun';
 const ESTADO_ABIERTO = 'ABIERTO';
@@ -37,10 +50,14 @@ function doGet(event) {
     if (action === 'openPeriod') {
       return json_(openPeriod_(event && event.parameter && event.parameter.periodo));
     }
+    if (action === 'closePeriod') {
+      return json_(closePeriod_());
+    }
     return json_({
       ok: false,
       error: 'Acción no válida.',
-      message: 'Usá ?action=reports | ?action=system | ?action=openPeriod&periodo=YYYY-MM',
+      message:
+        'Usá ?action=reports | ?action=system | ?action=openPeriod&periodo=YYYY-MM | ?action=closePeriod',
     });
   } catch (error) {
     return json_({
@@ -126,6 +143,10 @@ function openPeriodLocked_(periodo) {
   }
 
   const groupSheets = {};
+  const formallyClosed =
+    normalizeEstado_(state.EstadoPeriodo) === ESTADO_CERRADO &&
+    String(state.FechaCierre || '').trim() !== '';
+
   for (var i = 0; i < GROUP_SHEETS.length; i++) {
     var groupName = GROUP_SHEETS[i];
     var sheet = spreadsheet.getSheetByName(groupName);
@@ -138,18 +159,21 @@ function openPeriodLocked_(periodo) {
     }
     groupSheets[groupName] = sheet;
 
-    var prior = inspectGroupSheetPriorData_(sheet, groupName, periodLabel);
-    if (prior.blocked) {
-      return {
-        ok: false,
-        error: 'Hay datos de un período anterior en ' + groupName + '.',
-        message:
-          prior.message +
-          ' No se regeneraron las hojas automáticamente. Cerrá el período anterior (o limpiá las hojas de grupo de forma controlada) antes de abrir uno nuevo. Ninguna hoja fue modificada.',
-        grupo: groupName,
-        periodoAnterior: prior.b3 || null,
-        filasConDatos: prior.peopleCount,
-      };
+    // Tras cierre formal (Historial + FechaCierre), se permite regenerar al abrir el siguiente.
+    if (!formallyClosed) {
+      var prior = inspectGroupSheetPriorData_(sheet, groupName, periodLabel);
+      if (prior.blocked) {
+        return {
+          ok: false,
+          error: 'Hay datos de un período anterior en ' + groupName + '.',
+          message:
+            prior.message +
+            ' No se regeneraron las hojas automáticamente. Cerrá el período anterior (o limpiá las hojas de grupo de forma controlada) antes de abrir uno nuevo. Ninguna hoja fue modificada.',
+          grupo: groupName,
+          periodoAnterior: prior.b3 || null,
+          filasConDatos: prior.peopleCount,
+        };
+      }
     }
   }
 
@@ -310,6 +334,165 @@ function inspectGroupSheetPriorData_(sheet, groupName, periodLabel) {
   }
 
   return { blocked: false, b3: b3, peopleCount: 0 };
+}
+
+/**
+ * Cierra el período abierto: copia Grupo 1/2 a Historial y marca Sistema como CERRADO.
+ * No limpia las hojas de grupo. No abre el siguiente período.
+ */
+function closePeriod_() {
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(30000)) {
+    return {
+      ok: false,
+      error: 'No se pudo obtener el bloqueo.',
+      message:
+        'Otra operación de períodos está en curso. Reintentá en unos segundos. Ninguna hoja fue modificada.',
+    };
+  }
+
+  try {
+    return closePeriodLocked_();
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function closePeriodLocked_() {
+  const spreadsheet = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sistema = getOrCreateSistemaSheet_(spreadsheet);
+  const state = readSistemaMap_(sistema);
+
+  if (!isEstadoAbierto_(state.EstadoPeriodo)) {
+    return {
+      ok: false,
+      error: 'No hay un período abierto.',
+      message:
+        'Sistema.EstadoPeriodo no es ABIERTO. No hay nada que cerrar. Ninguna hoja fue modificada.',
+      periodo: state.PeriodoActivo || null,
+    };
+  }
+
+  const periodo = String(state.PeriodoActivo || '').trim();
+  if (!periodo) {
+    return {
+      ok: false,
+      error: 'PeriodoActivo vacío.',
+      message:
+        'Hay un estado ABIERTO pero PeriodoActivo está vacío. Corregí Sistema antes de cerrar. Ninguna hoja fue modificada.',
+    };
+  }
+
+  const snapshot = [];
+  const counts = { 'Grupo 1': 0, 'Grupo 2': 0 };
+
+  for (var i = 0; i < GROUP_SHEETS.length; i++) {
+    var groupName = GROUP_SHEETS[i];
+    var sheet = spreadsheet.getSheetByName(groupName);
+    if (!sheet) {
+      return {
+        ok: false,
+        error: 'No existe la hoja ' + groupName + '.',
+        message: 'No se puede cerrar sin las hojas de grupo. Ninguna hoja fue modificada.',
+      };
+    }
+
+    var groupData = readGroup_(sheet, groupName);
+    counts[groupName] = groupData.informes.length;
+    for (var r = 0; r < groupData.informes.length; r++) {
+      var row = groupData.informes[r];
+      snapshot.push({
+        periodo: periodo,
+        grupo: groupName,
+        id: String(row.id || ''),
+        nombre: String(row.nombre || ''),
+        privilegio: String(row.privilegio || ''),
+        horas: String(row.horas || ''),
+        estudios: String(row.estudios || ''),
+        comentarios: String(row.comentarios || ''),
+      });
+    }
+  }
+
+  const historial = getOrCreateHistorialSheet_(spreadsheet);
+  if (historialHasPeriodo_(historial, periodo)) {
+    return {
+      ok: false,
+      error: 'El período ya está en Historial.',
+      message:
+        'Ya existen filas en Historial para el período ' +
+        periodo +
+        '. No se duplicó el archivo ni se modificó Sistema.',
+      periodo: periodo,
+    };
+  }
+
+  const fechaCierre = new Date().toISOString();
+
+  appendHistorialRows_(historial, snapshot, fechaCierre);
+  writeSistemaClose_(sistema, fechaCierre);
+
+  return {
+    ok: true,
+    periodo: periodo,
+    estado: ESTADO_CERRADO,
+    fechaCierre: fechaCierre,
+    grupos: counts,
+    archived: snapshot.length,
+    message:
+      'Período cerrado correctamente. Historial actualizado. Las hojas de grupo no fueron limpiadas.',
+  };
+}
+
+function getOrCreateHistorialSheet_(spreadsheet) {
+  var sheet = spreadsheet.getSheetByName(HISTORIAL_SHEET);
+  if (!sheet) {
+    sheet = spreadsheet.insertSheet(HISTORIAL_SHEET);
+    sheet.getRange(1, 1, 1, HISTORIAL_HEADERS.length).setValues([HISTORIAL_HEADERS]);
+    return sheet;
+  }
+
+  if (sheet.getLastRow() < 1) {
+    sheet.getRange(1, 1, 1, HISTORIAL_HEADERS.length).setValues([HISTORIAL_HEADERS]);
+  }
+  return sheet;
+}
+
+function historialHasPeriodo_(sheet, periodo) {
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return false;
+  var values = sheet.getRange(2, 1, lastRow - 1, 1).getDisplayValues();
+  for (var i = 0; i < values.length; i++) {
+    if (String(values[i][0] || '').trim() === periodo) return true;
+  }
+  return false;
+}
+
+function appendHistorialRows_(sheet, snapshot, fechaCierre) {
+  if (!snapshot.length) return;
+  var rows = snapshot.map(function (item) {
+    return [
+      item.periodo,
+      item.grupo,
+      item.id,
+      item.nombre,
+      item.privilegio,
+      item.horas,
+      item.estudios,
+      item.comentarios,
+      fechaCierre,
+    ];
+  });
+  var startRow = Math.max(sheet.getLastRow() + 1, 2);
+  sheet.getRange(startRow, 1, rows.length, HISTORIAL_HEADERS.length).setValues(rows);
+}
+
+function writeSistemaClose_(sheet, fechaCierre) {
+  var map = readSistemaMap_(sheet);
+  map.EstadoPeriodo = ESTADO_CERRADO;
+  map.FechaCierre = fechaCierre;
+  map.Version = map.Version || SISTEMA_VERSION;
+  writeSistemaMap_(sheet, map);
 }
 
 function readSystemState_() {

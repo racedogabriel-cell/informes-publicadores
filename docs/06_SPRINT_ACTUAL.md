@@ -4,11 +4,11 @@ Documento del sprint vigente. No define sprints futuros.
 
 ## Nombre del sprint
 
-Sprint — Motor de Períodos
+Sprint — Cerrar período
 
 ## Objetivo
 
-Implementar la lógica real de apertura de un período (`action=openPeriod`).
+Implementar `action=closePeriod`: archivar el período abierto en Historial y marcar Sistema como CERRADO.
 
 ## Módulo
 
@@ -20,22 +20,22 @@ En desarrollo
 
 ## Alcance
 
-- Acción Apps Script `openPeriod`.
-- Lectura de apoyo `action=system`.
-- Regeneración de `Grupo 1` / `Grupo 2` desde `Personas` (solo activos).
-- Actualización de hoja `Sistema`.
-- Invocación desde Portal General → Períodos.
+- Verificar período ABIERTO.
+- Copiar registros válidos de Grupo 1 y Grupo 2 a Historial.
+- Actualizar Sistema (`EstadoPeriodo = CERRADO`, `FechaCierre`).
+- Invocación desde Portal General.
+- Período sugerido = mes vencido.
 
 ## Qué no incluye
 
-- Cierre de período.
-- Copia al `Historial`.
-- Escritura definitiva del Portal Encargados.
-- Validaciones del POST de informes.
+- Limpiar Grupo 1 / Grupo 2 al cerrar.
+- Abrir automáticamente el siguiente período.
+- Escritura real del Portal Encargados.
+- Cambios en Portal Encargados.
 
 ## Criterios de aceptación
 
-1. Si ya hay período ABIERTO, no se modifica ninguna hoja y se devuelve error claro.
-2. Si no hay período abierto, se regeneran los grupos y se actualiza `Sistema`.
-3. La respuesta JSON indica `ok`, `periodo` y conteos por grupo.
-4. El Portal Encargados no se modifica en este sprint.
+1. Sin período ABIERTO → error y sin cambios.
+2. Con período ABIERTO → Historial recibe la fotografía y Sistema queda CERRADO.
+3. Las hojas de grupo no se limpian.
+4. LockService protege la operación.
