@@ -1,17 +1,18 @@
 /**
- * Portal Encargados — UI + lectura GET desde Apps Script.
- * Sin POST, sin validaciones de negocio, sin mensajes de guardado.
+ * Portal Encargados — lectura GET + canal POST dry-run (sin escritura en Sheets).
  *
- * Grupo determinado (temporal):
+ * Grupo determinado (temporal vía query):
  * - ?grupo=1 | ?grupo=2
  * - ?grupo=Grupo%201 | ?grupo=Grupo%202
- * - por defecto: Grupo 1
+ * - ausente o inválido → error; no se carga ni se permite guardar
  */
 
-import { getMonthlyReports } from '../js/sheets.js';
+import { getMonthlyReports, postSaveGroupDryRun } from '../js/sheets.js';
 
 const PRIVILEGIOS = ['', 'Publicador', 'Auxiliar', 'Regular', 'Inactivo'];
-const DEFAULT_GROUP = 'Grupo 1';
+
+/** @type {{ grupo: string, mes: string } | null} */
+let sessionContext = null;
 
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>'"]/g, (char) => ({
@@ -23,17 +24,36 @@ function escapeHtml(value) {
   })[char]);
 }
 
-/** Resolución temporal del grupo hasta definir el mecanismo definitivo. */
-export function resolveGroupName() {
+/**
+ * Resolución estricta del grupo. Sin fallback silencioso.
+ * @returns {{ ok: true, grupo: string } | { ok: false, reason: 'missing' | 'invalid', message: string, raw: string }}
+ */
+export function resolveGroupParam() {
   const params = new URLSearchParams(window.location.search);
   const raw = (params.get('grupo') || params.get('group') || '').trim();
 
-  if (!raw) return DEFAULT_GROUP;
-  if (raw === '1' || /^grupo\s*1$/i.test(raw)) return 'Grupo 1';
-  if (raw === '2' || /^grupo\s*2$/i.test(raw)) return 'Grupo 2';
-  if (raw === 'Grupo 1' || raw === 'Grupo 2') return raw;
+  if (!raw) {
+    return {
+      ok: false,
+      reason: 'missing',
+      raw: '',
+      message: 'Falta el parámetro grupo. Abrí el portal con ?grupo=1 o ?grupo=2.',
+    };
+  }
 
-  return DEFAULT_GROUP;
+  if (raw === '1' || /^grupo\s*1$/i.test(raw) || raw === 'Grupo 1') {
+    return { ok: true, grupo: 'Grupo 1' };
+  }
+  if (raw === '2' || /^grupo\s*2$/i.test(raw) || raw === 'Grupo 2') {
+    return { ok: true, grupo: 'Grupo 2' };
+  }
+
+  return {
+    ok: false,
+    reason: 'invalid',
+    raw,
+    message: `El parámetro grupo "${raw}" no es válido. Usá ?grupo=1 o ?grupo=2.`,
+  };
 }
 
 function privilegeOptions(selected) {
@@ -106,11 +126,98 @@ function showStatus(message) {
   root.innerHTML = `<p class="encargados-status" role="status">${escapeHtml(message)}</p>`;
 }
 
-async function loadGroup() {
+function setSaveEnabled(enabled) {
+  const button = document.querySelector('#save-group');
+  if (!button) return;
+  button.disabled = !enabled;
+  button.title = enabled
+    ? 'Enviar lote de prueba (sin escribir en Sheets)'
+    : 'Disponible cuando el grupo esté cargado';
+}
+
+function setSaveBusy(busy) {
+  const button = document.querySelector('#save-group');
+  if (!button) return;
+  button.disabled = busy || !sessionContext;
+  button.textContent = busy ? 'Enviando…' : 'Guardar Grupo';
+}
+
+function setFeedback(message, tone = 'info') {
+  const el = document.querySelector('#save-feedback');
+  if (!el) return;
+  if (!message) {
+    el.hidden = true;
+    el.textContent = '';
+    el.dataset.tone = '';
+    return;
+  }
+  el.hidden = false;
+  el.dataset.tone = tone;
+  el.textContent = message;
+}
+
+function collectPayload() {
+  if (!sessionContext) {
+    throw new Error('No hay un grupo cargado para enviar.');
+  }
+
+  const rows = document.querySelectorAll('.encargados-table tbody tr');
+  const personas = Array.from(rows).map((row) => {
+    const id = row.getAttribute('data-id') || '';
+    const privilegio = row.querySelector('.field-select')?.value ?? '';
+    const horas = row.querySelector('.field-hours')?.value ?? '';
+    const estudios = row.querySelector('.field-studies')?.value ?? '';
+    const comentarios = row.querySelector('.field-comments')?.value ?? '';
+    return { id, privilegio, horas, estudios, comentarios };
+  });
+
+  return {
+    action: 'saveGroup',
+    mode: 'dryRun',
+    grupo: sessionContext.grupo,
+    mes: sessionContext.mes,
+    personas,
+  };
+}
+
+async function handleSaveGroup() {
+  setFeedback('');
+  setSaveBusy(true);
+
+  try {
+    const payload = collectPayload();
+    const result = await postSaveGroupDryRun(payload);
+
+    if (!result || result.ok !== true || result.received !== true) {
+      const detail = result?.message || result?.error || 'El servidor rechazó el lote.';
+      setFeedback(detail, 'error');
+      return;
+    }
+
+    if (result.wroteToSheet === true) {
+      setFeedback('Respuesta inesperada: el servidor indicó escritura. Revisar Apps Script.', 'error');
+      return;
+    }
+
+    const count = result.counts?.received ?? payload.personas.length;
+    setFeedback(
+      result.message || `Lote recibido (${count} personas). Sheets sin cambios.`,
+      'success',
+    );
+  } catch (error) {
+    setFeedback(error.message || 'No se pudo enviar el lote.', 'error');
+  } finally {
+    setSaveBusy(false);
+  }
+}
+
+async function loadGroup(grupo) {
   const root = document.querySelector('#encargados-app');
   if (!root) return;
 
-  const grupo = resolveGroupName();
+  sessionContext = null;
+  setSaveEnabled(false);
+  setFeedback('');
   setContext(grupo, '…');
   showStatus('Cargando informes…');
 
@@ -122,15 +229,37 @@ async function loadGroup() {
   if (!group) throw new Error(`No se encontró ${grupo} en la respuesta.`);
 
   const people = (group.informes || []).filter((person) => person.id && person.nombre);
+  sessionContext = { grupo: group.grupo, mes: group.mes || '' };
   setContext(group.grupo, group.mes || '—');
   root.innerHTML = renderTable(people);
+  setSaveEnabled(true);
 }
 
 async function init() {
+  setSaveEnabled(false);
+  setFeedback('');
+
+  const resolved = resolveGroupParam();
+  if (!resolved.ok) {
+    sessionContext = null;
+    setContext('—', '—');
+    showStatus(resolved.message);
+    return;
+  }
+
+  const saveButton = document.querySelector('#save-group');
+  if (saveButton) {
+    saveButton.addEventListener('click', () => {
+      void handleSaveGroup();
+    });
+  }
+
   try {
-    await loadGroup();
+    await loadGroup(resolved.grupo);
   } catch (error) {
-    setContext(resolveGroupName(), '—');
+    sessionContext = null;
+    setSaveEnabled(false);
+    setContext(resolved.grupo, '—');
     showStatus(error.message || 'No se pudieron cargar los informes.');
   }
 }

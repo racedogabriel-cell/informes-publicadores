@@ -99,6 +99,22 @@
   cursor: not-allowed;
 }
 
+.encargados-feedback {
+  flex: 1 0 100%;
+  margin: 0;
+  padding: 0 0 2px;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.encargados-feedback[data-tone='success'] {
+  color: var(--accent, #155e4b);
+}
+
+.encargados-feedback[data-tone='error'] {
+  color: #9b1c1c;
+}
+
 .encargados-main {
   min-height: 0;
   padding: 8px 10px 10px;
