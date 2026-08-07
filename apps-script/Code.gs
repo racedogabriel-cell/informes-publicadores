@@ -699,6 +699,26 @@ function saveGroup_(event) {
     };
   }
 
+  var periodoActivo = String(state.PeriodoActivo).trim();
+  var payloadPeriodo = String(payload.periodo || '').trim();
+  if (payloadPeriodo !== periodoActivo) {
+    return {
+      ok: false,
+      wroteToSheet: false,
+      action: SAVE_ACTION,
+      error: 'El período del lote no coincide con Sistema.',
+      message:
+        'El Portal Encargados envió periodo="' +
+        payloadPeriodo +
+        '" pero Sistema.PeriodoActivo="' +
+        periodoActivo +
+        '". Recargá el grupo e intentá de nuevo. Ninguna celda fue modificada.',
+      periodo: periodoActivo,
+      updated: [],
+      errors: [],
+    };
+  }
+
   var grupo = payload.grupo;
   var sheet = spreadsheet.getSheetByName(grupo);
   if (!sheet) {
@@ -956,6 +976,14 @@ function validateSaveGroupRequest_(payload) {
 
   if (typeof payload.mes !== 'string') {
     return { ok: false, error: 'mes debe ser un string (solo control).', errors: errors };
+  }
+
+  if (typeof payload.periodo !== 'string' || !/^\d{4}-(0[1-9]|1[0-2])$/.test(String(payload.periodo).trim())) {
+    return {
+      ok: false,
+      error: 'periodo debe ser YYYY-MM y coincidir con Sistema.PeriodoActivo.',
+      errors: errors,
+    };
   }
 
   if (!Array.isArray(payload.personas)) {

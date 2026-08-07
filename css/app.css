@@ -47,7 +47,7 @@
   flex-wrap:wrap;
 }
 .informes-sync-meta { margin:0; font-size:.9rem; }
-.informes-status { margin:0; color:var(--muted); font-weight:650; }
+.informes-system-note { margin:8px 0 0; font-size:.82rem; }
 .informes-empty { padding:20px 22px; }
 
 .data-table tr.is-pending-row { background:#fff6e6; }

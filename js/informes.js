@@ -1,25 +1,17 @@
-import { getMonthlyReports } from './sheets.js';
+import { getMonthlyReports, getSystemState } from './sheets.js';
+import { calendarPeriodOptions, isEstadoAbierto, periodKeyToLabel } from './period.js';
 
 /**
  * Módulo: Informes
- * Objetivo: vista ejecutiva según especificación funcional y diseño Sprint 2
+ * Objetivo: vista ejecutiva del período vigente según Sistema
  * Estado: En desarrollo
- * Sprint: Sprint Informes — consulta consolidada / vista ejecutiva
+ * Sprint: Estabilización 1 — Sistema como autoridad del período
  */
 
 const VALID_PRIVILEGES = ['Publicador', 'Auxiliar', 'Regular', 'Inactivo'];
 
 export function availablePeriods() {
-  const now = new Date();
-  return [-2, -1, 0].map((offset) => {
-    const date = new Date(now.getFullYear(), now.getMonth() + offset, 1);
-    return {
-      key: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`,
-      label: new Intl.DateTimeFormat('es-AR', { month: 'long', year: 'numeric' })
-        .format(date)
-        .replace(/^./, (char) => char.toUpperCase()),
-    };
-  });
+  return calendarPeriodOptions();
 }
 
 export function reportsView(period) {
@@ -31,16 +23,19 @@ export function bindReports(period, onPeriodChange) {
   if (!root) return;
 
   root.onclick = (event) => {
-    if (event.target.id === 'refresh-reports') loadReports(period);
+    const target = event.target;
+    if (target.id === 'refresh-reports' || target.id === 'retry-reports') {
+      loadReports(period, onPeriodChange);
+    }
   };
   root.onchange = (event) => {
     if (event.target.id === 'report-period') onPeriodChange(event.target.value);
   };
 
-  loadReports(period);
+  loadReports(period, onPeriodChange);
 }
 
-async function loadReports(period) {
+async function loadReports(period, onPeriodChange) {
   const root = document.querySelector('#informes-view');
   if (!root) return;
 
@@ -50,34 +45,57 @@ async function loadReports(period) {
   `;
 
   try {
-    const data = await getMonthlyReports();
+    const [system, data] = await Promise.all([getSystemState(), getMonthlyReports()]);
     if (!data) throw new Error('El conector de Apps Script no está configurado.');
     if (data.error) throw new Error(String(data.error));
+    if (system?.error) throw new Error(String(system.error || system.message));
 
-    const requested = availablePeriods().find((item) => item.key === period)?.label;
-    const groups = (data.groups || []).filter((group) => group.mes === requested);
+    const systemKey = String(system?.PeriodoActivo || '').trim();
+    const systemOpen = isEstadoAbierto(system?.EstadoPeriodo);
+
+    // Sistema es la autoridad: alinear el selector al período vigente cuando exista.
+    if (systemKey && systemKey !== period && onPeriodChange) {
+      onPeriodChange(systemKey);
+      return;
+    }
+
+    const viewKey = systemKey || period;
+    const viewLabel = periodKeyToLabel(viewKey);
+    const periods = systemKey
+      ? [{ key: systemKey, label: viewLabel }]
+      : ensurePeriodOption(availablePeriods(), viewKey, viewLabel);
+
+    // Período de Sistema: las hojas de trabajo son la fuente de filas (no se filtra por B3).
+    const groups =
+      systemKey && viewKey === systemKey
+        ? data.groups || []
+        : (data.groups || []).filter((group) => group.mes === viewLabel);
+
     const reports = groups.flatMap((group) =>
       (group.informes || [])
         .filter((report) => hasRequiredIdentity(report))
-        .map((report) => ({ ...report, grupo: group.grupo, mes: group.mes }))
+        .map((report) => ({ ...report, grupo: group.grupo, mes: group.mes })),
     );
-    const informedMonths = [...new Set(groups.map((group) => group.mes).filter(Boolean))];
     const generatedAt = formatGeneratedAt(data.generatedAt);
     const groupStatuses = buildGroupStatuses(groups);
     const monthComplete = isMonthComplete(groupStatuses);
-    const monthLabel = informedMonths.join(', ') || requested || '—';
+    const monthLabel = viewLabel;
+    const systemNote = systemKey
+      ? `Sistema: ${viewLabel} (${systemOpen ? 'ABIERTO' : 'CERRADO'})`
+      : 'Sistema sin PeriodoActivo';
 
     if (!reports.length) {
-      const received = [...new Set((data.groups || []).map((group) => group.mes).filter(Boolean))];
       root.innerHTML = `
-        ${renderVerdictShell(period, {
-          monthLabel: requested || '—',
+        ${renderVerdictShell(viewKey, {
+          monthLabel,
           empty: true,
+          periods,
+          systemNote,
         })}
         <article class="panel card informes-empty">
-          <p>No hay informes para ${escapeHtml(requested || 'el mes seleccionado')}.</p>
-          <p class="muted">Meses recibidos: ${escapeHtml(received.length ? received.join(', ') : 'ninguno')}.</p>
-          <p class="muted">Verificá que ambos grupos tengan seleccionado ese mes en la celda B3.</p>
+          <p>No hay informes para ${escapeHtml(monthLabel)}.</p>
+          <p class="muted">${escapeHtml(systemNote)}.</p>
+          <p class="muted">Si el período está abierto, verificá que las hojas Grupo 1/2 tengan filas.</p>
         </article>
         ${renderSyncBlock(generatedAt)}
       `;
@@ -86,10 +104,12 @@ async function loadReports(period) {
 
     const pendingReports = reports.filter((report) => !isReportComplete(report));
     root.innerHTML = `
-      ${renderVerdictShell(period, {
+      ${renderVerdictShell(viewKey, {
         monthLabel,
         monthComplete,
         pendingCount: pendingReports.length,
+        periods,
+        systemNote,
       })}
       ${renderPendingBlock(pendingReports, monthComplete)}
       ${renderGroupStatusBlock(groupStatuses)}
@@ -102,21 +122,29 @@ async function loadReports(period) {
       <article class="panel card">
         <p class="status-missing">No se pudieron obtener los informes.</p>
         <p class="muted">${escapeHtml(error.message || 'Error desconocido')}</p>
+        <p><button type="button" class="button" id="retry-reports">Reintentar</button></p>
       </article>
     `;
   }
 }
 
+function ensurePeriodOption(periods, key, label) {
+  if (!key || periods.some((item) => item.key === key)) return periods;
+  return [...periods, { key, label }];
+}
+
 function renderVerdictShell(period, state = {}) {
+  const periods = state.periods || availablePeriods();
   const select = `
     <div class="month-picker month-picker-inline">
       <label for="report-period">Mes:</label>
       <select id="report-period" aria-label="Mes">
-        ${availablePeriods()
+        ${periods
           .map((item) => `<option value="${item.key}" ${item.key === period ? 'selected' : ''}>${item.label}</option>`)
           .join('')}
       </select>
     </div>
+    ${state.systemNote ? `<p class="muted informes-system-note">${escapeHtml(state.systemNote)}</p>` : ''}
   `;
 
   let verdict = '';

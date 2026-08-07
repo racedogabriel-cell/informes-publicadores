@@ -1,13 +1,14 @@
 /**
  * Módulo: Períodos
- * Objetivo: ciclo mensual — apertura y cierre reales vía Apps Script
+ * Objetivo: ciclo mensual — apertura y cierre vía Apps Script
  * Estado: En desarrollo
- * Sprint: Sprint — Cerrar período (closePeriod)
+ * Sprint: Estabilización 1 — confirmación de cierre + reintentos
  *
  * Los informes se cargan a mes vencido: el período sugerido es el mes anterior.
  */
 
 import { getSystemState, openPeriod, closePeriod } from './sheets.js';
+import { isEstadoAbierto, periodKeyToLabel } from './period.js';
 
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>'"]/g, (char) => ({
@@ -27,12 +28,7 @@ function defaultPeriodKey() {
 }
 
 function labelFromPeriodKey(key) {
-  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(key || '')) return key || '—';
-  const [year, month] = key.split('-').map(Number);
-  const date = new Date(year, month - 1, 1);
-  return new Intl.DateTimeFormat('es-AR', { month: 'long', year: 'numeric' })
-    .format(date)
-    .replace(/^./, (char) => char.toUpperCase());
+  return periodKeyToLabel(key);
 }
 
 function formatTimestamp(value) {
@@ -51,11 +47,7 @@ function formatTimestamp(value) {
 }
 
 function isOpenEstado(estado) {
-  return String(estado || '')
-    .trim()
-    .toUpperCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '') === 'ABIERTO';
+  return isEstadoAbierto(estado);
 }
 
 function statusBadge(status) {
@@ -95,6 +87,11 @@ export function bindPeriods() {
   let lastResult = null;
 
   root.addEventListener('click', async (event) => {
+    if (event.target.id === 'retry-periods') {
+      await refresh(root, lastResult);
+      return;
+    }
+
     const button = event.target.closest('[data-period-action]');
     if (!button || button.disabled) return;
 
@@ -102,6 +99,13 @@ export function bindPeriods() {
     const feedback = root.querySelector('#periodos-feedback');
 
     if (action === 'close') {
+      const activeLabel =
+        root.querySelector('.periodos-active-label')?.textContent?.trim() || 'el período actual';
+      const confirmed = window.confirm(
+        `¿Cerrar ${activeLabel}?\n\nSe copiarán los informes a Historial y Sistema pasará a CERRADO.\nLas hojas Grupo 1/2 no se limpian.\nEsta acción no se puede deshacer desde la app.`,
+      );
+      if (!confirmed) return;
+
       button.disabled = true;
       if (feedback) {
         feedback.hidden = false;
@@ -212,6 +216,7 @@ async function refresh(root, lastResult) {
         Verificá que Apps Script tenga action=system / openPeriod / closePeriod
         y que exista la hoja Sistema en la planilla.
       </p>
+      <p><button type="button" class="button" id="retry-periods">Reintentar</button></p>
     `;
   }
 }

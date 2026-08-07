@@ -1,18 +1,20 @@
 /**
  * Portal Encargados — lectura GET + guardado real POST (saveGroup).
+ * Estabilización 1: Sistema como autoridad, relectura post-guardado, timeout/reintento.
  *
  * Grupo determinado (temporal vía query):
  * - ?grupo=1 | ?grupo=2
- * - ?grupo=Grupo%201 | ?grupo=Grupo%202
  * - ausente o inválido → error; no se carga ni se permite guardar
  */
 
-import { getMonthlyReports, postSaveGroup } from '../js/sheets.js';
+import { getMonthlyReports, getSystemState, postSaveGroup } from '../js/sheets.js';
+import { isEstadoAbierto, periodKeyToLabel } from '../js/period.js';
 
 const PRIVILEGIOS = ['', 'Publicador', 'Auxiliar', 'Regular', 'Inactivo'];
 
-/** @type {{ grupo: string, mes: string } | null} */
+/** @type {{ grupo: string, mes: string, periodo: string } | null} */
 let sessionContext = null;
+let resolvedGrupo = null;
 
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>'"]/g, (char) => ({
@@ -24,10 +26,6 @@ function escapeHtml(value) {
   })[char]);
 }
 
-/**
- * Resolución estricta del grupo. Sin fallback silencioso.
- * @returns {{ ok: true, grupo: string } | { ok: false, reason: 'missing' | 'invalid', message: string, raw: string }}
- */
 export function resolveGroupParam() {
   const params = new URLSearchParams(window.location.search);
   const raw = (params.get('grupo') || params.get('group') || '').trim();
@@ -120,10 +118,18 @@ function setContext(grupo, mes) {
   if (mesEl) mesEl.textContent = mes || '—';
 }
 
-function showStatus(message) {
+function showStatus(message, { retry = false } = {}) {
   const root = document.querySelector('#encargados-app');
   if (!root) return;
-  root.innerHTML = `<p class="encargados-status" role="status">${escapeHtml(message)}</p>`;
+  root.innerHTML = `
+    <p class="encargados-status" role="status">${escapeHtml(message)}</p>
+    ${retry ? '<p><button type="button" class="button" id="retry-load-group">Reintentar</button></p>' : ''}
+  `;
+  if (retry) {
+    document.querySelector('#retry-load-group')?.addEventListener('click', () => {
+      if (resolvedGrupo) void loadGroup(resolvedGrupo);
+    });
+  }
 }
 
 function setSaveEnabled(enabled) {
@@ -192,6 +198,7 @@ function collectPayload() {
     mode: 'save',
     grupo: sessionContext.grupo,
     mes: sessionContext.mes,
+    periodo: sessionContext.periodo,
     personas,
   };
 }
@@ -229,7 +236,15 @@ async function handleSaveGroup() {
     if (errors.length) markErrorRows(errors);
 
     if (result.counts?.updated > 0 && errors.length === 0) {
-      setFeedback(result.message || 'Grupo guardado correctamente.', 'success');
+      try {
+        await loadGroup(sessionContext.grupo, { keepFeedback: true });
+        setFeedback(result.message || 'Grupo guardado correctamente.', 'success');
+      } catch (reloadError) {
+        setFeedback(
+          `${result.message || 'Grupo guardado.'} No se pudo releer la tabla: ${reloadError.message || 'error'}`,
+          'error',
+        );
+      }
       return;
     }
 
@@ -257,26 +272,38 @@ async function handleSaveGroup() {
   }
 }
 
-async function loadGroup(grupo) {
+async function loadGroup(grupo, { keepFeedback = false } = {}) {
   const root = document.querySelector('#encargados-app');
   if (!root) return;
 
   sessionContext = null;
   setSaveEnabled(false);
-  setFeedback('');
+  if (!keepFeedback) setFeedback('');
   setContext(grupo, '…');
   showStatus('Cargando informes…');
 
-  const data = await getMonthlyReports();
+  const [system, data] = await Promise.all([getSystemState(), getMonthlyReports()]);
   if (!data) throw new Error('El conector de Apps Script no está configurado.');
   if (data.error) throw new Error(String(data.error));
+  if (system?.error) throw new Error(String(system.error || system.message));
+
+  const periodo = String(system?.PeriodoActivo || '').trim();
+  if (!periodo) {
+    throw new Error('Sistema no tiene PeriodoActivo. Abrí un período desde el Portal General.');
+  }
+  if (!isEstadoAbierto(system?.EstadoPeriodo)) {
+    throw new Error(
+      `No hay un período ABIERTO en Sistema (PeriodoActivo=${periodo}). No se puede editar.`,
+    );
+  }
 
   const group = (data.groups || []).find((item) => item.grupo === grupo);
   if (!group) throw new Error(`No se encontró ${grupo} en la respuesta.`);
 
   const people = (group.informes || []).filter((person) => person.id && person.nombre);
-  sessionContext = { grupo: group.grupo, mes: group.mes || '' };
-  setContext(group.grupo, group.mes || '—');
+  const mesLabel = periodKeyToLabel(periodo);
+  sessionContext = { grupo: group.grupo, mes: mesLabel, periodo };
+  setContext(group.grupo, mesLabel);
   root.innerHTML = renderTable(people);
   setSaveEnabled(true);
 }
@@ -293,6 +320,8 @@ async function init() {
     return;
   }
 
+  resolvedGrupo = resolved.grupo;
+
   const saveButton = document.querySelector('#save-group');
   if (saveButton) {
     saveButton.addEventListener('click', () => {
@@ -306,7 +335,7 @@ async function init() {
     sessionContext = null;
     setSaveEnabled(false);
     setContext(resolved.grupo, '—');
-    showStatus(error.message || 'No se pudieron cargar los informes.');
+    showStatus(error.message || 'No se pudieron cargar los informes.', { retry: true });
   }
 }
 

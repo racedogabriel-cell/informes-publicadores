@@ -4,29 +4,22 @@ Documento del sprint vigente. No define sprints futuros.
 
 ## Nombre del sprint
 
-Sprint — Guardado real de informes
+Sprint — Estabilización 1
 
 ## Objetivo
 
-Reemplazar el dry-run del Portal Encargados por la escritura real de C–F sobre el período abierto (`action=saveGroup`).
+Aplicar solo las mejoras de mayor impacto operativo del backlog de estabilización.
 
-## Módulo
+## Alcance (exclusivo)
 
-Portal Encargados / Informes (persistencia)
-
-## Estado
-
-En desarrollo
-
-## Alcance
-
-- `doPost` con escritura real por ID.
-- Validación de negocio alineada a docs/07 y docs/08.
-- Botón Guardar Grupo del Portal Encargados ejecuta el POST real.
-- Resultado con actualizadas / errores.
+1. Sistema como única autoridad del período.
+2. Validación del período activo en `saveGroup`.
+3. Confirmación antes de Cerrar período.
+4. Relectura del grupo luego de un guardado exitoso.
+5. Timeout y botón Reintentar para operaciones de red.
 
 ## Qué no incluye
 
-- Cambios de UI del Portal Encargados (salvo feedback/marcado de errores).
-- Cambios al Portal General.
-- Cambios a apertura/cierre de períodos, Historial, Personas o modelo de datos.
+- Resto del backlog de estabilización.
+- Nuevos módulos o funcionalidades de negocio.
+- Cambios de arquitectura o modelo de datos.

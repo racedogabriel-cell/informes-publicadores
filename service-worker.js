@@ -1,4 +1,4 @@
-const CACHE_NAME = 'informes-publicadores-v5';
+const CACHE_NAME = 'informes-publicadores-v6';
 const APP_SHELL = [
   './',
   './index.html',
@@ -11,6 +11,7 @@ const APP_SHELL = [
   './js/router.js',
   './js/informes.js',
   './js/periodos.js',
+  './js/period.js',
   './js/sheets.js',
   './js/config.js',
   './assets/icon.svg',
