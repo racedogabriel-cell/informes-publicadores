@@ -71,6 +71,20 @@ Archivo: `Migration.gs` (no es parte de la PWA).
 
 No modifica `Grupo 1` ni `Grupo 2`. Si `Personas` ya tiene datos, no vuelve a correr.
 
+## Inicialización de Sistema (primera instalación, una sola vez)
+
+Mismo archivo: `Migration.gs`.
+
+1. En la planilla: **Extensiones → Apps Script**.
+2. Actualizá **Migration.gs** con el contenido del repo y guardá.
+3. (Opcional) Ejecutá `simularInitializeSystem` para validar B3 sin escribir.
+4. En el selector de funciones elegí **`initializeSystem`** → **Ejecutar ▶**.
+5. Revisá la hoja **Migracion_Informe** y la hoja **Sistema**.
+
+Adopta el período de `Grupo 1!B3` / `Grupo 2!B3` (deben coincidir) como `PeriodoActivo` en formato `YYYY-MM` con `EstadoPeriodo = ABIERTO`.
+
+No modifica `Grupo 1`, `Grupo 2`, `Historial` ni `Personas`. No regenera hojas. No altera `openPeriod` / `closePeriod`. Si `Sistema.PeriodoActivo` ya tiene valor, no vuelve a correr.
+
 ## Acceso seguro
 
 No publiques una aplicación web con acceso anónimo mientras no haya autenticación. GitHub Pages no puede guardar un secreto en el navegador.

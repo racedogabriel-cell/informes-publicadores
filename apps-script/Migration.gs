@@ -1,18 +1,23 @@
 /**
- * Utilidad de migración ÚNICA — planilla → hoja Personas.
+ * Utilidades de migración ÚNICAS (primera instalación).
  *
- * NO forma parte de la PWA ni de doGet/doPost.
- * Ejecutar manualmente desde el editor de Apps Script (una sola vez).
+ * NO forman parte de la PWA ni de doGet/doPost.
+ * NO modifican openPeriod / closePeriod.
+ * Ejecutar manualmente desde el editor de Apps Script (una sola vez cada una).
  *
- * Cómo ejecutar:
+ * Funciones:
+ *   - migrarPersonasDesdeGrupos / simularMigracionPersonasDesdeGrupos
+ *   - initializeSystem / simularInitializeSystem
+ *
+ * Cómo ejecutar (ejemplo initializeSystem):
  * 1. Extensiones → Apps Script en la planilla.
- * 2. Creá un archivo nuevo "Migration.gs" y pegá este contenido (o reemplazá si ya existe).
- * 3. Guardá el proyecto.
- * 4. En el selector de funciones elegí: migrarPersonasDesdeGrupos
+ * 2. Creá/actualizá el archivo "Migration.gs" con este contenido.
+ * 3. Guardá el proyecto (junto a Code.gs).
+ * 4. En el selector de funciones elegí: initializeSystem
  * 5. Pulsá Ejecutar ▶ (autorizá si lo pide).
  * 6. Revisá Ver → Registros de ejecución (o la hoja Migracion_Informe).
  *
- * No modifica Grupo 1 ni Grupo 2.
+ * No modifica Grupo 1, Grupo 2, Historial ni Personas.
  */
 var MIGRATION_PERSONAS_HEADERS = ['ID', 'Nombre', 'Grupo', 'Activo'];
 var MIGRATION_REPORT_SHEET = 'Migracion_Informe';
@@ -228,6 +233,235 @@ function runPersonasMigration_(spreadsheet, options) {
   };
 }
 
+/**
+ * Primera instalación: adopta la planilla existente como período ABIERTO inicial.
+ * Solo escribe la hoja Sistema. No regenera grupos ni toca Historial/Personas.
+ */
+function initializeSystem() {
+  var spreadsheet = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var report = runInitializeSystem_(spreadsheet);
+  writeMigrationReportSheet_(spreadsheet, report);
+  Logger.log(JSON.stringify(report, null, 2));
+  return report;
+}
+
+/**
+ * Simula initializeSystem sin escribir Sistema.
+ */
+function simularInitializeSystem() {
+  var spreadsheet = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var report = runInitializeSystem_(spreadsheet, { dryRun: true });
+  writeMigrationReportSheet_(spreadsheet, report);
+  Logger.log(JSON.stringify(report, null, 2));
+  return report;
+}
+
+function runInitializeSystem_(spreadsheet, options) {
+  var dryRun = options && options.dryRun === true;
+  var startedAt = new Date().toISOString();
+  var errors = [];
+
+  var sistemaSheet = spreadsheet.getSheetByName(SISTEMA_SHEET);
+  if (sistemaSheet) {
+    var existing = readSistemaMap_(sistemaSheet);
+    var periodoRegistrado = String(existing.PeriodoActivo || '').trim();
+    if (periodoRegistrado) {
+      return {
+        ok: false,
+        utility: 'initializeSystem',
+        dryRun: dryRun,
+        startedAt: startedAt,
+        finishedAt: new Date().toISOString(),
+        PeriodoActivo: periodoRegistrado,
+        EstadoPeriodo: existing.EstadoPeriodo || '',
+        message:
+          'Sistema ya tiene un período registrado (' +
+          periodoRegistrado +
+          '). initializeSystem es de una sola vez y no se volvió a ejecutar. Ninguna hoja fue modificada.',
+        errors: [
+          {
+            type: 'sistema_already_initialized',
+            message: 'PeriodoActivo ya definido: ' + periodoRegistrado,
+          },
+        ],
+      };
+    }
+  }
+
+  var b3ByGroup = {};
+  for (var g = 0; g < GROUP_SHEETS.length; g++) {
+    var groupName = GROUP_SHEETS[g];
+    var groupSheet = spreadsheet.getSheetByName(groupName);
+    if (!groupSheet) {
+      errors.push({
+        type: 'missing_sheet',
+        grupo: groupName,
+        message: 'No existe la hoja ' + groupName + '.',
+      });
+      continue;
+    }
+    b3ByGroup[groupName] = String(groupSheet.getRange('B3').getDisplayValue() || '').trim();
+  }
+
+  if (errors.length) {
+    return buildInitializeFailure_(dryRun, startedAt, b3ByGroup, errors, 'Faltan hojas de grupo. Ninguna hoja fue modificada.');
+  }
+
+  var b3Grupo1 = b3ByGroup['Grupo 1'];
+  var b3Grupo2 = b3ByGroup['Grupo 2'];
+
+  if (!b3Grupo1 || !b3Grupo2) {
+    if (!b3Grupo1) {
+      errors.push({
+        type: 'empty_b3',
+        grupo: 'Grupo 1',
+        message: 'Grupo 1!B3 está vacío.',
+      });
+    }
+    if (!b3Grupo2) {
+      errors.push({
+        type: 'empty_b3',
+        grupo: 'Grupo 2',
+        message: 'Grupo 2!B3 está vacío.',
+      });
+    }
+    return buildInitializeFailure_(
+      dryRun,
+      startedAt,
+      b3ByGroup,
+      errors,
+      'B3 incompleto en los grupos. Ninguna hoja fue modificada.'
+    );
+  }
+
+  if (b3Grupo1 !== b3Grupo2) {
+    errors.push({
+      type: 'inconsistent_period',
+      message:
+        'Grupo 1!B3="' +
+        b3Grupo1 +
+        '" y Grupo 2!B3="' +
+        b3Grupo2 +
+        '" no coinciden.',
+    });
+    return buildInitializeFailure_(
+      dryRun,
+      startedAt,
+      b3ByGroup,
+      errors,
+      'Los grupos no tienen el mismo período en B3. Ninguna hoja fue modificada.'
+    );
+  }
+
+  var periodoKey = parsePeriodLabelToKey_(b3Grupo1);
+  if (!periodoKey) {
+    errors.push({
+      type: 'unparseable_period',
+      message:
+        'No se pudo interpretar B3="' +
+        b3Grupo1 +
+        '" como período (se espera "Julio 2026" o YYYY-MM).',
+    });
+    return buildInitializeFailure_(
+      dryRun,
+      startedAt,
+      b3ByGroup,
+      errors,
+      'Período de B3 no reconocido. Ninguna hoja fue modificada.'
+    );
+  }
+
+  var fechaApertura = new Date().toISOString();
+  var createdSistema = false;
+
+  if (!dryRun) {
+    if (!sistemaSheet) {
+      sistemaSheet = spreadsheet.insertSheet(SISTEMA_SHEET);
+      createdSistema = true;
+    }
+    writeSistemaMap_(sistemaSheet, {
+      PeriodoActivo: periodoKey,
+      EstadoPeriodo: ESTADO_ABIERTO,
+      FechaApertura: fechaApertura,
+      FechaCierre: '',
+      Version: SISTEMA_VERSION,
+    });
+  }
+
+  return {
+    ok: true,
+    utility: 'initializeSystem',
+    dryRun: dryRun,
+    startedAt: startedAt,
+    finishedAt: new Date().toISOString(),
+    createdSistemaSheet: createdSistema,
+    b3: b3ByGroup,
+    PeriodoActivo: dryRun ? null : periodoKey,
+    wouldSetPeriodoActivo: periodoKey,
+    EstadoPeriodo: dryRun ? null : ESTADO_ABIERTO,
+    FechaApertura: dryRun ? null : fechaApertura,
+    Version: SISTEMA_VERSION,
+    message: dryRun
+      ? 'Simulación terminada. Sistema no fue escrita. Se adoptaría el período ' +
+        periodoKey +
+        ' (' +
+        b3Grupo1 +
+        ') como ABIERTO.'
+      : 'Sistema inicializado. Período ' +
+        periodoKey +
+        ' (' +
+        b3Grupo1 +
+        ') adoptado como ABIERTO. Grupo 1, Grupo 2, Historial y Personas no fueron modificados.',
+    errors: [],
+  };
+}
+
+function buildInitializeFailure_(dryRun, startedAt, b3ByGroup, errors, message) {
+  return {
+    ok: false,
+    utility: 'initializeSystem',
+    dryRun: dryRun,
+    startedAt: startedAt,
+    finishedAt: new Date().toISOString(),
+    b3: b3ByGroup || {},
+    message: message,
+    errors: errors || [],
+  };
+}
+
+/**
+ * Acepta YYYY-MM o etiqueta canónica "Julio 2026" (también "Julio de 2026").
+ */
+function parsePeriodLabelToKey_(raw) {
+  var value = String(raw || '').trim();
+  var asKey = normalizePeriodoKey_(value);
+  if (asKey) return asKey;
+
+  var match = value.match(/^([A-Za-záéíóúÁÉÍÓÚüÜñÑ]+)\s+(?:de\s+)?(\d{4})$/i);
+  if (!match) return null;
+
+  var monthName = String(match[1] || '').toLowerCase();
+  var year = match[2];
+  var months = {
+    enero: '01',
+    febrero: '02',
+    marzo: '03',
+    abril: '04',
+    mayo: '05',
+    junio: '06',
+    julio: '07',
+    agosto: '08',
+    septiembre: '09',
+    setiembre: '09',
+    octubre: '10',
+    noviembre: '11',
+    diciembre: '12',
+  };
+  var month = months[monthName];
+  if (!month) return null;
+  return normalizePeriodoKey_(year + '-' + month);
+}
+
 function writeMigrationReportSheet_(spreadsheet, report) {
   var sheet = spreadsheet.getSheetByName(MIGRATION_REPORT_SHEET);
   if (!sheet) sheet = spreadsheet.insertSheet(MIGRATION_REPORT_SHEET);
@@ -235,14 +469,29 @@ function writeMigrationReportSheet_(spreadsheet, report) {
 
   var lines = [];
   lines.push(['Campo', 'Valor']);
+  lines.push(['utility', report.utility || 'migrarPersonasDesdeGrupos']);
   lines.push(['ok', String(report.ok)]);
   lines.push(['dryRun', String(report.dryRun)]);
   lines.push(['mensaje', report.message || '']);
+  lines.push(['PeriodoActivo', report.PeriodoActivo != null ? report.PeriodoActivo : '']);
+  lines.push([
+    'wouldSetPeriodoActivo',
+    report.wouldSetPeriodoActivo != null ? report.wouldSetPeriodoActivo : '',
+  ]);
+  lines.push(['EstadoPeriodo', report.EstadoPeriodo != null ? report.EstadoPeriodo : '']);
+  lines.push(['FechaApertura', report.FechaApertura != null ? report.FechaApertura : '']);
+  lines.push(['Version', report.Version != null ? report.Version : '']);
   lines.push(['importadas', report.imported != null ? report.imported : '']);
   lines.push(['habrianImportado', report.wouldImport != null ? report.wouldImport : '']);
   lines.push(['omitidas', report.omitted != null ? report.omitted : '']);
   lines.push(['inicio', report.startedAt || '']);
   lines.push(['fin', report.finishedAt || '']);
+
+  if (report.b3) {
+    lines.push(['B3 Grupo 1', report.b3['Grupo 1'] || '']);
+    lines.push(['B3 Grupo 2', report.b3['Grupo 2'] || '']);
+  }
+
   lines.push(['', '']);
   lines.push(['--- Errores / avisos ---', '']);
   lines.push(['tipo', 'detalle']);
