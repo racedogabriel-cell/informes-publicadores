@@ -399,7 +399,7 @@ Modelo de datos completo: `docs/09_MODELO_DATOS_SHEETS.md`.
 
 | Ubicación | Uso |
 |---|---|
-| `B3` | Período / mes informado (solo lectura desde Portal Encargados) |
+| `B3` | Espejo opcional del período (la autoridad es `Sistema`; ver `docs/09_MODELO_DATOS_SHEETS.md`) |
 | Fila 5 | Encabezados |
 | Desde fila 7 | Datos del período |
 | Columna A | ID (desde padrón al regenerar; nunca editable) |

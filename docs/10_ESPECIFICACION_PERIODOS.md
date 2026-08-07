@@ -17,91 +17,120 @@ Gestionar el ciclo de vida del período de informes:
 
 1. Abrir un período.
 2. Cerrar un período.
-3. Generar las hojas `Grupo 1` y `Grupo 2` desde el padrón `Personas`.
-4. Copiar la fotografía del período al `Historial`.
-5. Limpiar / preparar las hojas de trabajo para el siguiente período.
+3. Actualizar el estado global en la hoja `Sistema`.
+4. Generar las hojas `Grupo 1` y `Grupo 2` desde el padrón `Personas`.
+5. Copiar la fotografía del período al `Historial`.
+6. Limpiar / preparar las hojas de trabajo para el siguiente período.
 
 ---
 
 ## 2. Fuera de alcance (etapa UI actual)
 
 - Apertura/cierre real sobre Google Sheets.
-- Escritura en `Historial` o regeneración de `Grupo 1` / `Grupo 2`.
+- Escritura en `Sistema`, `Historial` o regeneración de `Grupo 1` / `Grupo 2`.
 - Escritura definitiva de informes del Portal Encargados.
 - Edición del padrón (módulo **Personas**).
 - Consulta analítica del historial (Informes/Estadísticas en sprints futuros).
 
 ---
 
-## 3. Responsabilidades
+## 3. Estado global (`Sistema`)
+
+El módulo Períodos es el **único escritor** de la hoja `Sistema`, que es la única fuente de verdad del período vigente.
+
+Campos iniciales (detalle en `docs/09_MODELO_DATOS_SHEETS.md` §2):
+
+| Campo | Uso |
+|---|---|
+| `PeriodoActivo` | Período vigente |
+| `EstadoPeriodo` | `Abierto` / `Cerrado` |
+| `FechaApertura` | Última apertura |
+| `FechaCierre` | Último cierre |
+| `Version` | Versión del esquema de estado |
+
+### Reglas
+
+1. Abrir/cerrar período **siempre** actualiza `Sistema` antes o como parte atómica de la operación.
+2. Portal General e Informes leen el período desde `Sistema` (vía Apps Script), no desde `B3`.
+3. Portal Encargados muestra el mes/período de contexto desde `Sistema`, no lo infiere desde `B3`.
+4. `B3` en hojas de grupo, si se conserva, es solo espejo alineado por Períodos; nunca autoridad.
+
+---
+
+## 4. Responsabilidades
 
 | Acción | Descripción |
 |---|---|
-| Abrir período | Establece el período abierto (`B3`), regenera `Grupo 1` y `Grupo 2` desde `Personas` (`Activo = Sí`), A–B desde padrón, C–F vacíos. |
-| Cerrar período | Copia todas las filas del período abierto al `Historial` con los campos mínimos del modelo; registra fecha de cierre. |
+| Abrir período | Actualiza `Sistema` (`PeriodoActivo`, `EstadoPeriodo = Abierto`, `FechaApertura`); regenera `Grupo 1` y `Grupo 2` desde `Personas` (`Activo = Sí`), A–B desde padrón, C–F vacíos; alinea espejo `B3` si aplica. |
+| Cerrar período | Actualiza `Sistema` (`EstadoPeriodo = Cerrado`, `FechaCierre`); copia todas las filas del período de trabajo al `Historial`. |
 | Generar hojas de grupo | Materializa el padrón filtrado por grupo en las hojas de trabajo. |
 | Copiar a Historial | Append-only; no modifica filas históricas previas. |
-| Limpiar hojas de trabajo | Tras el cierre (o como parte de abrir el siguiente), deja el período abierto listo según la regla de regeneración. |
+| Limpiar hojas de trabajo | Tras el cierre (o como parte de abrir el siguiente), deja el trabajo listo según la regeneración. |
 | Preparar siguiente período | Encadena cierre + apertura del nuevo mes según el flujo del modelo de datos. |
 
 ---
 
-## 4. Flujo operativo (resumen)
+## 5. Flujo operativo (resumen)
 
 ```text
 Mantener Personas
       ↓
-Abrir período → regenerar Grupo 1 / Grupo 2
+Abrir período → actualizar Sistema → regenerar Grupo 1 / Grupo 2
       ↓
 Carga de informes (Encargados) + consulta (Informes)
+  (ambos leen período vigente desde Sistema)
       ↓
-Cerrar período → copiar a Historial
+Cerrar período → actualizar Sistema → copiar a Historial
       ↓
 Preparar / abrir siguiente período
 ```
 
-Detalle normativo: `docs/09_MODELO_DATOS_SHEETS.md` §§5–8.
+Detalle normativo: `docs/09_MODELO_DATOS_SHEETS.md`.
 
 ---
 
-## 5. Reglas de negocio (obligatorias)
+## 6. Reglas de negocio (obligatorias)
 
 1. Solo el Encargado General opera este módulo.
 2. Los encargados de grupo **no** abren ni cierran períodos.
-3. Al regenerar, A y B salen siempre de `Personas`; nunca se inventan desde Encargados.
-4. Solo personas con `Activo = Sí` entran al período abierto.
-5. El `Historial` es inmutable tras cada cierre.
-6. Cambios posteriores de nombre o grupo en `Personas` **no** alteran el `Historial`.
-7. No se borran fotografías históricas para “corregir” el pasado; las correcciones del padrón aplican hacia adelante.
+3. `Sistema` es la única fuente de verdad del período vigente.
+4. Ningún portal infiere el período desde `B3` una vez implementada esta arquitectura.
+5. Al regenerar, A y B salen siempre de `Personas`; nunca se inventan desde Encargados.
+6. Solo personas con `Activo = Sí` entran al período de trabajo.
+7. El `Historial` es inmutable tras cada cierre.
+8. Cambios posteriores de nombre o grupo en `Personas` **no** alteran el `Historial`.
+9. No se borran fotografías históricas para “corregir” el pasado; las correcciones del padrón aplican hacia adelante.
 
 ---
 
-## 6. Integración futura con Apps Script
+## 7. Integración futura con Apps Script
 
-Cuando se implemente (sprint futuro), Apps Script deberá exponer acciones dedicadas al ciclo de períodos (nombres exactos a definir en la implementación), por ejemplo:
+Cuando se implemente la apertura/cierre real, Apps Script deberá:
 
-- abrir / regenerar período;
-- cerrar y archivar en `Historial`.
+- exponer lectura del estado global (`Sistema`);
+- exponer acciones de abrir / regenerar período y cerrar / archivar en `Historial`;
+- escribir `Sistema` en cada apertura y cierre.
 
 Esas acciones son **distintas** del `doPost` de guardado de informes del Portal Encargados (`saveGroup`).
 
 ---
 
-## 7. Criterios de aceptación (para cuando se implemente)
+## 8. Criterios de aceptación (para cuando se implemente la apertura/cierre real)
 
-1. Abrir período regenera `Grupo 1` y `Grupo 2` solo desde `Personas` activas.
-2. Cerrar período agrega al `Historial` una fila por persona del período, sin modificar filas previas.
-3. Tras un cambio de grupo o nombre en el padrón, un período ya cerrado permanece intacto en `Historial`.
-4. El Portal Encargados sigue viendo solo el período abierto de su grupo.
-5. No se implementan estas acciones dentro de `/encargados/`.
+1. Abrir período actualiza `Sistema` y regenera `Grupo 1` / `Grupo 2` solo desde `Personas` activas.
+2. Cerrar período actualiza `Sistema` y agrega al `Historial` una fila por persona del período, sin modificar filas previas.
+3. Informes y Portal Encargados obtienen el período vigente desde `Sistema`, no desde `B3`.
+4. Tras un cambio de grupo o nombre en el padrón, un período ya cerrado permanece intacto en `Historial`.
+5. El Portal Encargados sigue viendo solo el grupo determinado sobre el período de trabajo.
+6. No se implementan abrir/cerrar dentro de `/encargados/`.
 
 ---
 
-## 8. Relación con otros módulos
+## 9. Relación con otros módulos
 
 | Módulo | Relación |
 |---|---|
 | Personas | Mantiene el padrón que Períodos lee al regenerar. |
-| Informes | Consulta el período abierto; historial cerrado es extensión futura. |
-| Portal Encargados | Consume el período abierto; no gestiona el ciclo. |
+| Informes | Consulta filas del período de trabajo; el período vigente lo toma de `Sistema`. |
+| Portal Encargados | Consume el período de trabajo; contexto de mes desde `Sistema`; no gestiona el ciclo. |
 | Estadísticas | Posible consumidor futuro del `Historial`. |

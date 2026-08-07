@@ -123,7 +123,7 @@ Responsabilidad: conector compartido entre ambos portales y Google Sheets.
 - Un mismo proyecto/endpoint atiende a Portal General y Portal Encargados.
 - Lectura: `doGet` / `action=reports` (período abierto: `Grupo 1` y `Grupo 2`; variantes futuras según se aprueben).
 - Escritura de informes: `doPost` para el guardado del Portal Encargados (procesamiento independiente por persona; solo C–F del período abierto).
-- Escritura de ciclo mensual (futuro, módulo Períodos): regenerar período abierto desde `Personas` y copiar cierres a `Historial` — distinta del guardado de encargados.
+- Escritura de ciclo mensual (futuro, módulo Períodos): escribir `Sistema`, regenerar período de trabajo desde `Personas` y copiar cierres a `Historial` — distinta del guardado de encargados.
 - No debe exponer teléfonos, direcciones, contactos de emergencia ni otros datos sensibles ajenos al contrato de informes.
 
 La URL del endpoint se configura en el cliente (p. ej. `js/config.js` o equivalente compartido). El código fuente del conector está en `apps-script/`.
@@ -138,17 +138,20 @@ Modelo aprobado (detalle: `docs/09_MODELO_DATOS_SHEETS.md`):
 
 | Pestaña | Concepto |
 |---|---|
+| `Sistema` | Estado global: período vigente y estado del ciclo. Única fuente de verdad del período. |
 | `Personas` | Padrón maestro (ID, Nombre, Grupo, Activo). Solo Encargado General. |
-| `Grupo 1` / `Grupo 2` | Período actualmente abierto (no padrón). |
+| `Grupo 1` / `Grupo 2` | Espacio de trabajo del período abierto (no padrón; no autoridad del período). |
 | `Historial` | Períodos cerrados; inmutable. |
 
-Período abierto (`Grupo 1` / `Grupo 2`):
+Período de trabajo (`Grupo 1` / `Grupo 2`):
 
-- Celda `B3`: período / mes informado.
+- Celda `B3`: espejo opcional del período (no fuente de verdad una vez implementado `Sistema`).
 - Fila `5`: encabezados.
 - Datos desde la fila `7`.
 - Columnas A–B (`ID`, `Nombre`): provienen del padrón al regenerar el período.
 - Columnas C–F: Privilegio, Horas, Estudios, Comentarios (informe del período).
+
+El período vigente lo publican los clientes desde `Sistema` (vía Apps Script), no por inferencia desde `B3`.
 
 ---
 
@@ -172,8 +175,8 @@ Período abierto (`Grupo 1` / `Grupo 2`):
 ### Ciclo mensual (Portal General → Períodos; futuro)
 
 1. El Encargado General mantiene `Personas`.
-2. Abre período → regenera `Grupo 1` / `Grupo 2` desde el padrón.
-3. Tras la carga, cierra período → copia fotografía a `Historial`.
+2. Abre período → actualiza `Sistema` → regenera `Grupo 1` / `Grupo 2` desde el padrón.
+3. Tras la carga, cierra período → actualiza `Sistema` → copia fotografía a `Historial`.
 4. Prepara el siguiente período.
 
 No hay otras vías de datos aprobadas (sin Firebase, SQL u otros backends).

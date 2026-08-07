@@ -55,9 +55,13 @@ Cada elemento de `informes` contiene:
 
 ### 2.3 Alcance de la lectura en Apps Script
 
-El conector lee las pestañas del **período abierto**: `Grupo 1` y `Grupo 2`. El mes/período de cada grupo proviene de la celda `B3` de su pestaña.
+El conector lee las pestañas del **período de trabajo**: `Grupo 1` y `Grupo 2`.
 
-Esas hojas ya no se modelan como padrón: la lista de personas del período se regenera desde la hoja `Personas` al abrir un período (módulo Períodos; ver `docs/09_MODELO_DATOS_SHEETS.md`). En esta etapa, Informes solo consulta el período abierto; el `Historial` de períodos cerrados queda fuera del alcance actual del módulo.
+**Arquitectura aprobada:** el período vigente se obtiene de la hoja `Sistema` (`PeriodoActivo` / `EstadoPeriodo`), no por inferencia desde `B3`. Ver `docs/09_MODELO_DATOS_SHEETS.md` §2.
+
+**Transición:** la implementación actual aún puede filtrar por `B3`/`mes` en la respuesta de grupos; esa inferencia queda deprecada y deberá sustituirse al implementar la lectura de `Sistema`.
+
+Las hojas de grupo no son padrón: la lista se regenera desde `Personas` al abrir un período (módulo Períodos). El `Historial` de períodos cerrados queda fuera del alcance actual del módulo Informes.
 
 ---
 

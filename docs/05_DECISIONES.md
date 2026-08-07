@@ -143,3 +143,13 @@ Especificación: `docs/10_ESPECIFICACION_PERIODOS.md`.
 No implementar hasta sprint explícito.
 
 Lista actualizada de módulos del Portal General: Inicio, Personas, Informes, Períodos, Estadísticas, Configuración.
+
+## 2026-08-07 — Hoja Sistema (estado global del período)
+
+Queda aprobada la hoja `Sistema` como **única fuente de verdad** del período vigente.
+
+Campos iniciales: `PeriodoActivo`, `EstadoPeriodo`, `FechaApertura`, `FechaCierre`, `Version`.
+
+Una vez implementada esta arquitectura, ni el Portal General ni el Portal Encargados inferirán el período desde `B3` de las hojas de grupo. `B3` puede permanecer como espejo operativo alineado por Períodos, sin autoridad.
+
+Documento normativo: `docs/09_MODELO_DATOS_SHEETS.md` §2; impacto en Períodos: `docs/10_ESPECIFICACION_PERIODOS.md` §3.
