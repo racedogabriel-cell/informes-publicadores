@@ -1,5 +1,5 @@
 /**
- * Portal Encargados — lectura GET + canal POST dry-run (sin escritura en Sheets).
+ * Portal Encargados — lectura GET + guardado real POST (saveGroup).
  *
  * Grupo determinado (temporal vía query):
  * - ?grupo=1 | ?grupo=2
@@ -7,7 +7,7 @@
  * - ausente o inválido → error; no se carga ni se permite guardar
  */
 
-import { getMonthlyReports, postSaveGroupDryRun } from '../js/sheets.js';
+import { getMonthlyReports, postSaveGroup } from '../js/sheets.js';
 
 const PRIVILEGIOS = ['', 'Publicador', 'Auxiliar', 'Regular', 'Inactivo'];
 
@@ -131,7 +131,7 @@ function setSaveEnabled(enabled) {
   if (!button) return;
   button.disabled = !enabled;
   button.title = enabled
-    ? 'Enviar lote de prueba (sin escribir en Sheets)'
+    ? 'Guardar informes del grupo en Google Sheets'
     : 'Disponible cuando el grupo esté cargado';
 }
 
@@ -139,7 +139,7 @@ function setSaveBusy(busy) {
   const button = document.querySelector('#save-group');
   if (!button) return;
   button.disabled = busy || !sessionContext;
-  button.textContent = busy ? 'Enviando…' : 'Guardar Grupo';
+  button.textContent = busy ? 'Guardando…' : 'Guardar Grupo';
 }
 
 function setFeedback(message, tone = 'info') {
@@ -154,6 +154,22 @@ function setFeedback(message, tone = 'info') {
   el.hidden = false;
   el.dataset.tone = tone;
   el.textContent = message;
+}
+
+function clearRowStates() {
+  document.querySelectorAll('.encargados-table tbody tr').forEach((row) => {
+    row.classList.remove('is-error', 'is-complete', 'is-pending');
+  });
+}
+
+function markErrorRows(errors) {
+  clearRowStates();
+  (errors || []).forEach((item) => {
+    const id = item?.id;
+    if (id == null || id === '') return;
+    const row = document.querySelector(`.encargados-table tbody tr[data-id="${CSS.escape(String(id))}"]`);
+    if (row) row.classList.add('is-error');
+  });
 }
 
 function collectPayload() {
@@ -173,37 +189,67 @@ function collectPayload() {
 
   return {
     action: 'saveGroup',
-    mode: 'dryRun',
+    mode: 'save',
     grupo: sessionContext.grupo,
     mes: sessionContext.mes,
     personas,
   };
 }
 
+function formatErrorSummary(errors) {
+  if (!errors?.length) return '';
+  const sample = errors
+    .slice(0, 5)
+    .map((item) => `ID ${item.id}: ${item.error}`)
+    .join(' · ');
+  const more = errors.length > 5 ? ` (+${errors.length - 5} más)` : '';
+  return `${sample}${more}`;
+}
+
 async function handleSaveGroup() {
   setFeedback('');
+  clearRowStates();
   setSaveBusy(true);
 
   try {
     const payload = collectPayload();
-    const result = await postSaveGroupDryRun(payload);
+    const result = await postSaveGroup(payload);
 
-    if (!result || result.ok !== true || result.received !== true) {
-      const detail = result?.message || result?.error || 'El servidor rechazó el lote.';
-      setFeedback(detail, 'error');
+    if (!result) {
+      setFeedback('Respuesta vacía del servidor.', 'error');
       return;
     }
 
-    if (result.wroteToSheet === true) {
-      setFeedback('Respuesta inesperada: el servidor indicó escritura. Revisar Apps Script.', 'error');
+    if (result.ok === false && !result.wroteToSheet && !(result.errors || []).length) {
+      setFeedback(result.message || result.error || 'No se pudo guardar el grupo.', 'error');
       return;
     }
 
-    const count = result.counts?.received ?? payload.personas.length;
-    setFeedback(
-      result.message || `Lote recibido (${count} personas). Sheets sin cambios.`,
-      'success',
-    );
+    const errors = result.errors || [];
+    if (errors.length) markErrorRows(errors);
+
+    if (result.counts?.updated > 0 && errors.length === 0) {
+      setFeedback(result.message || 'Grupo guardado correctamente.', 'success');
+      return;
+    }
+
+    if (result.counts?.updated > 0 && errors.length > 0) {
+      setFeedback(
+        `${result.message || 'Guardado parcial.'} ${formatErrorSummary(errors)}`,
+        'error',
+      );
+      return;
+    }
+
+    if (errors.length) {
+      setFeedback(
+        `${result.message || 'No se actualizó ninguna persona.'} ${formatErrorSummary(errors)}`,
+        'error',
+      );
+      return;
+    }
+
+    setFeedback(result.message || 'Guardado completado.', result.ok ? 'success' : 'error');
   } catch (error) {
     setFeedback(error.message || 'No se pudo enviar el lote.', 'error');
   } finally {

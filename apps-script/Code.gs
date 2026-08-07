@@ -8,7 +8,7 @@
  *   ?action=openPeriod&periodo=YYYY-MM
  *   ?action=closePeriod
  * doPost:
- *   saveGroup (dry-run; sin escritura)
+ *   saveGroup (escritura real C–F por ID en período ABIERTO)
  */
 const SPREADSHEET_ID = '1BcZ31qor91cGlrtRSEO6XsZDFiSVtP4PCZ5F910xoBs';
 const GROUP_SHEETS = ['Grupo 1', 'Grupo 2'];
@@ -620,62 +620,306 @@ function isEstadoAbierto_(raw) {
 }
 
 /**
- * Fase de prueba Encargados: valida estructura del payload y confirma recepción.
- * No escribe celdas.
+ * Guardado real del Portal Encargados: action=saveGroup.
+ * Escribe solo C–F por ID en el período ABIERTO. No toca Períodos/Historial/Personas/Sistema (salvo lectura).
  */
 function doPost(event) {
-  let payload;
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(30000)) {
+    return json_({
+      ok: false,
+      wroteToSheet: false,
+      error: 'No se pudo obtener el bloqueo.',
+      message: 'Otra operación está en curso. Reintentá en unos segundos.',
+      updated: [],
+      errors: [],
+    });
+  }
+
   try {
-    payload = parsePostPayload_(event);
+    return json_(saveGroup_(event));
   } catch (error) {
     return json_({
       ok: false,
-      received: false,
       wroteToSheet: false,
-      mode: DRY_RUN_MODE,
+      error: String(error.message || error),
+      message: String(error.message || error),
+      updated: [],
+      errors: [],
+    });
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function saveGroup_(event) {
+  var payload;
+  try {
+    payload = parsePostPayload_(event);
+  } catch (error) {
+    return {
+      ok: false,
+      wroteToSheet: false,
+      action: SAVE_ACTION,
       error: String(error.message || error),
       message: 'No se pudo interpretar el cuerpo de la solicitud.',
-    });
+      updated: [],
+      errors: [],
+    };
   }
 
-  const validation = validateSaveGroupPayload_(payload);
-  if (!validation.ok) {
-    return json_({
+  var requestCheck = validateSaveGroupRequest_(payload);
+  if (!requestCheck.ok) {
+    return {
       ok: false,
-      received: false,
       wroteToSheet: false,
-      mode: DRY_RUN_MODE,
-      action: payload && payload.action,
-      error: validation.error,
-      errors: validation.errors || [],
-      message: validation.error,
-    });
+      action: SAVE_ACTION,
+      error: requestCheck.error,
+      message: requestCheck.error,
+      errors: requestCheck.errors || [],
+      updated: [],
+    };
   }
 
-  const personas = payload.personas;
-  return json_({
-    ok: true,
-    received: true,
-    wroteToSheet: false,
-    mode: DRY_RUN_MODE,
+  var spreadsheet = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sistema = getOrCreateSistemaSheet_(spreadsheet);
+  var state = readSistemaMap_(sistema);
+
+  if (!isEstadoAbierto_(state.EstadoPeriodo) || !String(state.PeriodoActivo || '').trim()) {
+    return {
+      ok: false,
+      wroteToSheet: false,
+      action: SAVE_ACTION,
+      error: 'No hay un período abierto.',
+      message:
+        'No se puede guardar: Sistema debe tener PeriodoActivo y EstadoPeriodo=ABIERTO. Ninguna celda fue modificada.',
+      periodo: state.PeriodoActivo || null,
+      updated: [],
+      errors: [],
+    };
+  }
+
+  var grupo = payload.grupo;
+  var sheet = spreadsheet.getSheetByName(grupo);
+  if (!sheet) {
+    return {
+      ok: false,
+      wroteToSheet: false,
+      action: SAVE_ACTION,
+      error: 'No existe la hoja ' + grupo + '.',
+      message: 'No se encontró la hoja del grupo. Ninguna celda fue modificada.',
+      updated: [],
+      errors: [],
+    };
+  }
+
+  var idRowMap = buildIdRowMap_(sheet);
+  var updated = [];
+  var errors = [];
+  var wroteAny = false;
+
+  for (var i = 0; i < payload.personas.length; i++) {
+    var person = payload.personas[i];
+    var id = String(person.id).trim();
+    var business = validatePersonBusiness_(person);
+
+    if (!business.ok) {
+      errors.push({ id: id, index: i, error: business.error });
+      continue;
+    }
+
+    var row = idRowMap[id];
+    if (!row) {
+      errors.push({
+        id: id,
+        index: i,
+        error: 'No se encontró el ID en la hoja ' + grupo + '.',
+      });
+      continue;
+    }
+
+    // Solo C–F. Nunca A, B ni B3.
+    sheet.getRange(row, 3, 1, 4).setValues([
+      [
+        business.values.privilegio,
+        business.values.horas,
+        business.values.estudios,
+        business.values.comentarios,
+      ],
+    ]);
+    wroteAny = true;
+    updated.push({ id: id, row: row });
+  }
+
+  var received = payload.personas.length;
+  var partial = errors.length > 0 && updated.length > 0;
+  var allFailed = errors.length > 0 && updated.length === 0;
+
+  return {
+    ok: !allFailed || received === 0,
+    wroteToSheet: wroteAny,
     action: SAVE_ACTION,
-    grupo: payload.grupo,
+    grupo: grupo,
+    periodo: state.PeriodoActivo,
     mes: payload.mes,
     counts: {
-      received: personas.length,
-      accepted: personas.length,
-      rejected: 0,
+      received: received,
+      updated: updated.length,
+      rejected: errors.length,
     },
-    errors: [],
-    message: 'Lote recibido correctamente. No se modificó Google Sheets.',
-  });
+    updated: updated,
+    errors: errors,
+    message: allFailed
+      ? 'No se actualizó ninguna persona. Revisá los errores.'
+      : partial
+        ? 'Guardado parcial: ' +
+          updated.length +
+          ' actualizada(s), ' +
+          errors.length +
+          ' con error.'
+        : 'Grupo guardado correctamente (' + updated.length + ' persona(s)).',
+  };
+}
+
+function buildIdRowMap_(sheet) {
+  var map = {};
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 7) return map;
+  var ids = sheet.getRange(7, 1, lastRow - 6, 1).getDisplayValues();
+  for (var i = 0; i < ids.length; i++) {
+    var id = String(ids[i][0] || '').trim();
+    if (id && map[id] == null) map[id] = 7 + i;
+  }
+  return map;
+}
+
+/**
+ * Validación de negocio por persona (docs/07 + docs/08).
+ * Vacío en privilegio = pendiente permitido.
+ * Publicador: persiste Sí/No canónico.
+ */
+function validatePersonBusiness_(person) {
+  var privilegio = String(person.privilegio || '').trim();
+  var horas = String(person.horas || '').trim();
+  var estudios = String(person.estudios || '').trim();
+  var comentarios = String(person.comentarios || '').trim();
+
+  if (estudios !== '') {
+    if (!/^\d+$/.test(estudios)) {
+      return { ok: false, error: 'Estudios debe ser un entero ≥ 0 o vacío.' };
+    }
+  }
+
+  if (privilegio === '') {
+    if (horas !== '') {
+      return { ok: false, error: 'Con privilegio vacío, Horas debe quedar vacío (informe pendiente).' };
+    }
+    return {
+      ok: true,
+      values: {
+        privilegio: '',
+        horas: '',
+        estudios: estudios,
+        comentarios: comentarios,
+      },
+    };
+  }
+
+  var validPrivileges = { Publicador: 1, Auxiliar: 1, Regular: 1, Inactivo: 1 };
+  if (!validPrivileges[privilegio]) {
+    return {
+      ok: false,
+      error: 'Privilegio inválido. Usá Publicador, Auxiliar, Regular o Inactivo.',
+    };
+  }
+
+  if (privilegio === 'Inactivo') {
+    return {
+      ok: true,
+      values: {
+        privilegio: 'Inactivo',
+        horas: '',
+        estudios: estudios,
+        comentarios: comentarios,
+      },
+    };
+  }
+
+  if (privilegio === 'Publicador') {
+    var yn = normalizeYesNoToken_(horas);
+    if (!yn) {
+      return {
+        ok: false,
+        error: 'Horas de Publicador debe ser Sí o No (se admiten variantes sin tilde / mayúsculas).',
+      };
+    }
+    return {
+      ok: true,
+      values: {
+        privilegio: 'Publicador',
+        horas: yn === 'si' ? 'Sí' : 'No',
+        estudios: estudios,
+        comentarios: comentarios,
+      },
+    };
+  }
+
+  // Auxiliar / Regular
+  if (horas === '') {
+    return {
+      ok: true,
+      values: {
+        privilegio: privilegio,
+        horas: '',
+        estudios: estudios,
+        comentarios: comentarios,
+      },
+    };
+  }
+
+  if (!isNumericHours_(horas)) {
+    return {
+      ok: false,
+      error: 'Horas de ' + privilegio + ' debe ser un valor numérico (se admite . o ,).',
+    };
+  }
+
+  return {
+    ok: true,
+    values: {
+      privilegio: privilegio,
+      horas: horas.replace(',', '.'),
+      estudios: estudios,
+      comentarios: comentarios,
+    },
+  };
+}
+
+function normalizeYesNoToken_(value) {
+  var text = String(value || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+  if (text === 'si') return 'si';
+  if (text === 'no') return 'no';
+  return null;
+}
+
+function isNumericHours_(value) {
+  var text = String(value || '').trim();
+  if (!text) return false;
+  if (normalizeYesNoToken_(text)) return false;
+  var normalized = text.replace(',', '.');
+  if (!/^-?\d+(\.\d+)?$/.test(normalized)) return false;
+  return isFinite(Number(normalized));
 }
 
 function parsePostPayload_(event) {
   if (!event || !event.postData || !event.postData.contents) {
     throw new Error('El cuerpo POST está vacío.');
   }
-  const raw = String(event.postData.contents).trim();
+  var raw = String(event.postData.contents).trim();
   if (!raw) throw new Error('El cuerpo POST está vacío.');
   try {
     return JSON.parse(raw);
@@ -684,8 +928,8 @@ function parsePostPayload_(event) {
   }
 }
 
-function validateSaveGroupPayload_(payload) {
-  const errors = [];
+function validateSaveGroupRequest_(payload) {
+  var errors = [];
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
     return { ok: false, error: 'El payload debe ser un objeto JSON.', errors: errors };
   }
@@ -694,12 +938,16 @@ function validateSaveGroupPayload_(payload) {
     return { ok: false, error: 'Acción no válida. Se espera action=saveGroup.', errors: errors };
   }
 
-  if (payload.mode !== DRY_RUN_MODE) {
+  if (payload.mode === DRY_RUN_MODE) {
     return {
       ok: false,
-      error: 'En esta fase solo se admite mode=dryRun (sin escritura).',
+      error: 'mode=dryRun ya no está disponible. Enviá mode=save.',
       errors: errors,
     };
+  }
+
+  if (payload.mode != null && payload.mode !== 'save') {
+    return { ok: false, error: 'mode debe ser "save".', errors: errors };
   }
 
   if (GROUP_SHEETS.indexOf(payload.grupo) === -1) {
@@ -715,8 +963,7 @@ function validateSaveGroupPayload_(payload) {
   }
 
   for (var i = 0; i < payload.personas.length; i++) {
-    var person = payload.personas[i];
-    var personError = validatePersonStructure_(person, i);
+    var personError = validatePersonStructure_(payload.personas[i], i);
     if (personError) errors.push(personError);
   }
 

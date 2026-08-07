@@ -48,7 +48,15 @@ Orden seguro:
 
 ## Escritura Encargados — dry-run (`doPost`)
 
-`action=saveGroup` + `mode=dryRun`: valida recepción, **no escribe** celdas.
+`action=saveGroup` + `mode=save`:
+
+1. Verifica `Sistema` con período activo y `EstadoPeriodo=ABIERTO`.
+2. Ubica cada persona **solo por ID** en la hoja del grupo.
+3. Actualiza únicamente columnas C–F (Privilegio, Horas, Estudios, Comentarios).
+4. Valida reglas de negocio (docs/07 y docs/08) persona a persona.
+5. Devuelve conteos + detalle de errores; un error no impide guardar las demás.
+
+No modifica ID, Nombre, B3, Historial, Personas ni el ciclo de períodos.
 
 ## Acceso seguro
 

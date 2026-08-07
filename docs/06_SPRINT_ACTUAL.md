@@ -4,15 +4,15 @@ Documento del sprint vigente. No define sprints futuros.
 
 ## Nombre del sprint
 
-Sprint — Cerrar período
+Sprint — Guardado real de informes
 
 ## Objetivo
 
-Implementar `action=closePeriod`: archivar el período abierto en Historial y marcar Sistema como CERRADO.
+Reemplazar el dry-run del Portal Encargados por la escritura real de C–F sobre el período abierto (`action=saveGroup`).
 
 ## Módulo
 
-Períodos
+Portal Encargados / Informes (persistencia)
 
 ## Estado
 
@@ -20,22 +20,13 @@ En desarrollo
 
 ## Alcance
 
-- Verificar período ABIERTO.
-- Copiar registros válidos de Grupo 1 y Grupo 2 a Historial.
-- Actualizar Sistema (`EstadoPeriodo = CERRADO`, `FechaCierre`).
-- Invocación desde Portal General.
-- Período sugerido = mes vencido.
+- `doPost` con escritura real por ID.
+- Validación de negocio alineada a docs/07 y docs/08.
+- Botón Guardar Grupo del Portal Encargados ejecuta el POST real.
+- Resultado con actualizadas / errores.
 
 ## Qué no incluye
 
-- Limpiar Grupo 1 / Grupo 2 al cerrar.
-- Abrir automáticamente el siguiente período.
-- Escritura real del Portal Encargados.
-- Cambios en Portal Encargados.
-
-## Criterios de aceptación
-
-1. Sin período ABIERTO → error y sin cambios.
-2. Con período ABIERTO → Historial recibe la fotografía y Sistema queda CERRADO.
-3. Las hojas de grupo no se limpian.
-4. LockService protege la operación.
+- Cambios de UI del Portal Encargados (salvo feedback/marcado de errores).
+- Cambios al Portal General.
+- Cambios a apertura/cierre de períodos, Historial, Personas o modelo de datos.

@@ -2,7 +2,7 @@ import { GOOGLE_REPORTS_ENDPOINT } from './config.js';
 
 /**
  * Infraestructura Apps Script compartida.
- * Lectura de informes, estado Sistema, apertura de período y POST dry-run Encargados.
+ * Lectura de informes/Sistema, ciclo de períodos y guardado real de Encargados.
  */
 
 export async function getMonthlyReports() {
@@ -93,10 +93,10 @@ export async function closePeriod() {
 }
 
 /**
- * Envía el lote completo del grupo (fase dryRun).
- * Usa text/plain para evitar preflight CORS con Apps Script.
+ * Guarda el lote del grupo (escritura real C–F).
+ * Content-Type: text/plain para evitar preflight CORS con Apps Script.
  */
-export async function postSaveGroupDryRun(payload) {
+export async function postSaveGroup(payload) {
   if (!GOOGLE_REPORTS_ENDPOINT) {
     throw new Error('El conector de Apps Script no está configurado.');
   }
