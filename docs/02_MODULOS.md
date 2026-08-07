@@ -95,7 +95,7 @@ No implementar funcionalidades de un módulo en estado **No iniciado** hasta con
 
 **Objetivo:** Gestionar el ciclo mensual: abrir y cerrar período, regenerar `Grupo 1`/`Grupo 2` desde `Personas`, copiar al `Historial` y preparar el siguiente período.
 
-**Estado actual:** No iniciado.
+**Estado actual:** En desarrollo.
 
 **Especificación de diseño:** `docs/10_ESPECIFICACION_PERIODOS.md`  
 **Modelo de datos:** `docs/09_MODELO_DATOS_SHEETS.md`
@@ -109,16 +109,20 @@ No implementar funcionalidades de un módulo en estado **No iniciado** hasta con
 - Copiar datos al Historial.
 - Limpiar hojas de trabajo / preparar el siguiente período.
 
+**En este sprint (UI):**
+
+- Pantalla de administración con listado, período activo, estados y botones.
+- Botones sin acciones sobre Google Sheets.
+
 **Funcionalidades pendientes:**
 
-- Sprint de implementación aprobado.
-- UI e integración Apps Script del ciclo.
+- Apertura/cierre real vía Apps Script.
+- Regeneración desde `Personas` y copia a `Historial`.
 
 **Funcionalidades fuera de alcance:**
 
-- Implementar ahora sin sprint.
 - Exponer estas acciones en el Portal Encargados.
-- Alterar el Historial tras el cierre.
+- Alterar el Historial tras el cierre sin el flujo de Períodos.
 
 ---
 

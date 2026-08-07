@@ -1,10 +1,12 @@
 import { reportsView, bindReports, availablePeriods } from './informes.js';
+import { periodsView, bindPeriods } from './periodos.js';
 
 /** Estados oficiales de módulo. No implementar módulos marcados como "No iniciado". */
 const moduleStatus = {
   inicio: 'No iniciado',
   personas: 'No iniciado',
   informes: 'En desarrollo',
+  periodos: 'En desarrollo',
   estadisticas: 'No iniciado',
   configuracion: 'No iniciado',
 };
@@ -36,6 +38,12 @@ const routes = {
         renderRoute();
       }),
   },
+  periodos: {
+    title: 'Períodos',
+    eyebrow: '',
+    view: () => periodsView(),
+    bind: () => bindPeriods(),
+  },
   estadisticas: {
     title: 'Estadísticas',
     eyebrow: '',
@@ -52,6 +60,7 @@ export const navItems = [
   { id: 'inicio', label: 'Inicio', icon: '⌂' },
   { id: 'personas', label: 'Personas', icon: '♙' },
   { id: 'informes', label: 'Informes', icon: '▤' },
+  { id: 'periodos', label: 'Períodos', icon: '◷' },
   { id: 'estadisticas', label: 'Estadísticas', icon: '◔' },
   { id: 'configuracion', label: 'Configuración', icon: '⚙' },
 ];

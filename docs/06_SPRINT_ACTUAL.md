@@ -4,15 +4,15 @@ Documento del sprint vigente. No define sprints futuros.
 
 ## Nombre del sprint
 
-Sprint Informes — consulta consolidada
+Sprint Períodos — interfaz de administración
 
 ## Objetivo
 
-Avanzar el módulo Informes como primer módulo funcional de la aplicación, dentro del alcance ya aprobado.
+Implementar la primera versión de la pantalla de administración de períodos en el Portal General, sin acciones reales sobre Google Sheets.
 
 ## Módulo
 
-Informes
+Períodos
 
 ## Estado
 
@@ -20,32 +20,25 @@ En desarrollo
 
 ## Alcance
 
-Consulta de solo lectura de los informes mensuales cargados en Google Sheets, a través de Google Apps Script, para el encargado general.
-
-## Qué incluye
-
-- Consultar el endpoint de Apps Script (`action=reports`).
-- Consolidar los datos de `Grupo 1` y `Grupo 2`.
-- Filtrar entre los dos meses anteriores y el mes actual.
-- Mostrar cantidad de personas, informes completos y pendientes.
-- Mantener la pantalla en solo lectura.
-- Permitir actualizar datos desde Google Sheets.
+- Nuevo módulo Períodos en el Portal General.
+- Listado de períodos.
+- Indicación del período activo.
+- Estado Abierto / Cerrado.
+- Botones Abrir nuevo período y Cerrar período (sin ejecución sobre Sheets).
+- Arquitectura preparada para la apertura/cierre real posteriores.
 
 ## Qué no incluye
 
-- Funcionalidades de Inicio, Personas, Estadísticas o Configuración.
-- Escritura o edición de informes desde la PWA.
-- Uso de `localStorage` u otras fuentes de datos.
-- Dashboards, KPIs ficticios o placeholders de otros módulos.
-- Publicación en GitHub Pages, salvo que se indique expresamente en este sprint.
-- Cualquier ampliación del alcance del módulo Informes no listada arriba.
+- Apertura o cierre real del período en Google Sheets.
+- Regeneración de `Grupo 1` / `Grupo 2` desde `Personas`.
+- Escritura en `Historial`.
+- Cambios en Portal Encargados, Apps Script o escritura definitiva de informes.
+- Módulos Inicio, Personas, Estadísticas o Configuración.
 
 ## Criterios de aceptación
 
-1. La consulta de informes se realiza únicamente vía Apps Script → Google Sheets.
-2. Se consolidan ambos grupos en una vista de solo lectura.
-3. El filtro de mes contempla el mes actual y los dos anteriores.
-4. Se muestran los conteos de personas, informes completos y pendientes.
-5. Existe una acción para actualizar los datos desde Google Sheets.
-6. No se implementan funcionalidades fuera del alcance de este sprint.
-7. Toda implementación queda asociada a: módulo Informes, objetivo de este sprint, estado En desarrollo, y este sprint.
+1. El módulo Períodos aparece en la navegación del Portal General.
+2. La pantalla muestra listado, período activo y estado Abierto/Cerrado.
+3. Los botones Abrir / Cerrar están visibles y no modifican Google Sheets.
+4. Quedan puntos de extensión listos para la integración real posterior.
+5. No se modifican Portal Encargados, Apps Script, Historial ni la planilla.

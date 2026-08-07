@@ -1,4 +1,4 @@
-const CACHE_NAME = 'informes-publicadores-v1';
+const CACHE_NAME = 'informes-publicadores-v2';
 const APP_SHELL = [
   './',
   './index.html',
@@ -10,6 +10,7 @@ const APP_SHELL = [
   './js/app.js',
   './js/router.js',
   './js/informes.js',
+  './js/periodos.js',
   './js/sheets.js',
   './js/config.js',
   './assets/icon.svg',
@@ -20,7 +21,13 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))),
+    ).then(() => self.clients.claim()),
+  );
+});
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;

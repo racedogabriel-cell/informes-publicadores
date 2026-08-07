@@ -1,10 +1,11 @@
 # Especificación funcional — Módulo Períodos
 
-Documento de **diseño aprobado**. Solo documentar. **No implementar** hasta sprint y aprobación explícitos.
+Documento de **diseño aprobado**. Primera etapa de implementación: **solo UI** en el Portal General (sin acciones sobre Sheets).
 
 - **Módulo:** Períodos
 - **Portal:** Portal General (`/`)
-- **Estado:** No iniciado
+- **Estado:** En desarrollo
+- **Sprint vigente:** Sprint Períodos — interfaz de administración
 - **Modelo de datos:** `docs/09_MODELO_DATOS_SHEETS.md`
 - **Roles:** solo Encargado General
 
@@ -22,12 +23,13 @@ Gestionar el ciclo de vida del período de informes:
 
 ---
 
-## 2. Fuera de alcance (ahora)
+## 2. Fuera de alcance (etapa UI actual)
 
-- Cualquier implementación de UI o Apps Script de este módulo.
+- Apertura/cierre real sobre Google Sheets.
+- Escritura en `Historial` o regeneración de `Grupo 1` / `Grupo 2`.
 - Escritura definitiva de informes del Portal Encargados.
-- Edición del padrón (eso corresponde al módulo **Personas**).
-- Consulta analítica del historial (puede vivir en Informes/Estadísticas en sprints futuros).
+- Edición del padrón (módulo **Personas**).
+- Consulta analítica del historial (Informes/Estadísticas en sprints futuros).
 
 ---
 

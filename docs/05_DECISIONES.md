@@ -79,7 +79,7 @@ Que un módulo exista en la navegación no implica que deba implementarse.
 - Portal Encargados (lectura + canal POST dry-run): En desarrollo (escritura definitiva pendiente de auditoría).
 - Inicio: No iniciado.
 - Personas: No iniciado.
-- Períodos: No iniciado (diseño documentado).
+- Períodos: En desarrollo (UI de administración; sin acciones en Sheets).
 - Estadísticas: No iniciado.
 - Configuración: No iniciado.
 

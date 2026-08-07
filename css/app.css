@@ -52,3 +52,100 @@
 
 .data-table tr.is-pending-row { background:#fff6e6; }
 .data-table tr.is-pending-row td { box-shadow:inset 3px 0 0 var(--warning); }
+
+/* Módulo Períodos — administración (UI sin acciones en Sheets) */
+.periodos-view { display:grid; gap:18px; }
+.periodos-hero {
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:space-between;
+  align-items:flex-end;
+  gap:18px;
+  padding:22px 24px;
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  background:linear-gradient(180deg, #ffffff 0%, #f3f7f4 100%);
+  box-shadow:var(--shadow);
+}
+.periodos-kicker {
+  margin:0 0 6px;
+  color:var(--muted);
+  font-size:.72rem;
+  font-weight:700;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+}
+.periodos-active-label {
+  margin:0;
+  font-size:clamp(1.45rem, 3vw, 1.9rem);
+  font-weight:750;
+  line-height:1.15;
+}
+.periodos-active-meta {
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:10px;
+  margin:10px 0 0;
+}
+.periodos-actions {
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+}
+.button-secondary {
+  background:#fff;
+  color:var(--primary);
+  border:1px solid #9bc7b4;
+}
+.button-secondary:disabled,
+.periodos-actions .button:disabled {
+  opacity:.55;
+  cursor:not-allowed;
+}
+.periodos-badge {
+  display:inline-block;
+  padding:4px 9px;
+  border-radius:999px;
+  font-size:.78rem;
+  font-weight:700;
+}
+.periodos-badge.is-open {
+  background:var(--primary-soft);
+  color:var(--primary);
+}
+.periodos-badge.is-closed {
+  background:#eef1ef;
+  color:var(--muted);
+}
+.periodos-list-panel { padding:18px 20px 14px; }
+.periodos-table .periodos-name { font-weight:650; }
+.periodos-table tr.is-active-period { background:#f3faf6; }
+.periodos-table tr.is-active-period td { box-shadow:inset 3px 0 0 var(--primary); }
+.periodos-note { margin:12px 0 0; font-size:.86rem; }
+.periodos-feedback {
+  margin:0;
+  padding:12px 14px;
+  border-radius:10px;
+  font-size:.9rem;
+  font-weight:650;
+  background:#eef1ef;
+  color:var(--ink);
+}
+.periodos-feedback[data-tone='info'] {
+  background:#e8f2ec;
+  color:var(--primary);
+}
+.periodos-feedback[data-tone='error'] {
+  background:#fdecec;
+  color:var(--danger);
+}
+.periodos-feedback[data-tone='success'] {
+  background:var(--primary-soft);
+  color:var(--primary);
+}
+@media (max-width: 700px) {
+  .periodos-actions { width:100%; }
+  .periodos-actions .button { flex:1 1 100%; }
+}
+

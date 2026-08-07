@@ -24,9 +24,9 @@ Módulo oficial del padrón maestro (`Personas`). Diseño de modelo en `docs/09_
 
 ## Períodos
 
-**Estado:** No iniciado.
+**Estado:** En desarrollo.
 
-Módulo oficial del ciclo mensual. Diseño aprobado en `docs/10_ESPECIFICACION_PERIODOS.md`. Sin implementar.
+Módulo oficial del ciclo mensual. UI de administración en curso (`#periodos`); apertura/cierre real pendiente de auditoría.
 
 ## Estadísticas
 
