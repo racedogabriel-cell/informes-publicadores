@@ -53,7 +53,9 @@ function doGet(event) {
 
 /**
  * Abre un período: regenera Grupo 1/2 desde Personas y actualiza Sistema.
- * Idempotente: si ya hay período ABIERTO, no modifica nada.
+ * Segura e idempotente: valida todo antes de escribir; LockService evita carreras.
+ * Si ya hay período ABIERTO o quedan datos de un período anterior en las hojas de grupo,
+ * no modifica ninguna hoja.
  */
 function openPeriod_(periodoRaw) {
   const periodo = normalizePeriodoKey_(periodoRaw);
@@ -61,11 +63,33 @@ function openPeriod_(periodoRaw) {
     return {
       ok: false,
       error: 'Parámetro periodo inválido.',
-      message: 'Indicá periodo=YYYY-MM (ejemplo: 2026-09).',
+      message: 'Indicá periodo=YYYY-MM (ejemplo: 2026-09). Ninguna hoja fue modificada.',
     };
   }
 
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(30000)) {
+    return {
+      ok: false,
+      error: 'No se pudo obtener el bloqueo.',
+      message:
+        'Otra operación de períodos está en curso. Reintentá en unos segundos. Ninguna hoja fue modificada.',
+    };
+  }
+
+  try {
+    return openPeriodLocked_(periodo);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function openPeriodLocked_(periodo) {
+  const periodLabel = formatPeriodLabel_(periodo);
   const spreadsheet = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+  // --- Fase 1: solo lectura y validación (sin escrituras) ---
+
   const sistema = getOrCreateSistemaSheet_(spreadsheet);
   const state = readSistemaMap_(sistema);
 
@@ -86,11 +110,50 @@ function openPeriod_(periodoRaw) {
     return {
       ok: false,
       error: 'No existe la hoja Personas.',
-      message: 'Creá la hoja Personas (ID, Nombre, Grupo, Activo) antes de abrir un período.',
+      message:
+        'Creá la hoja Personas (ID, Nombre, Grupo, Activo) antes de abrir un período. Ninguna hoja fue modificada.',
     };
   }
 
-  const activePeople = readActivePersonas_(personasSheet);
+  const personasValidation = validatePersonasCatalog_(personasSheet);
+  if (!personasValidation.ok) {
+    return {
+      ok: false,
+      error: personasValidation.error,
+      message: personasValidation.message + ' Ninguna hoja fue modificada.',
+      details: personasValidation.details || [],
+    };
+  }
+
+  const groupSheets = {};
+  for (var i = 0; i < GROUP_SHEETS.length; i++) {
+    var groupName = GROUP_SHEETS[i];
+    var sheet = spreadsheet.getSheetByName(groupName);
+    if (!sheet) {
+      return {
+        ok: false,
+        error: 'No existe la hoja ' + groupName + '.',
+        message: 'La planilla debe contener las pestañas Grupo 1 y Grupo 2. Ninguna hoja fue modificada.',
+      };
+    }
+    groupSheets[groupName] = sheet;
+
+    var prior = inspectGroupSheetPriorData_(sheet, groupName, periodLabel);
+    if (prior.blocked) {
+      return {
+        ok: false,
+        error: 'Hay datos de un período anterior en ' + groupName + '.',
+        message:
+          prior.message +
+          ' No se regeneraron las hojas automáticamente. Cerrá el período anterior (o limpiá las hojas de grupo de forma controlada) antes de abrir uno nuevo. Ninguna hoja fue modificada.',
+        grupo: groupName,
+        periodoAnterior: prior.b3 || null,
+        filasConDatos: prior.peopleCount,
+      };
+    }
+  }
+
+  const activePeople = personasValidation.activePeople;
   const byGroup = {
     'Grupo 1': activePeople.filter(function (person) {
       return person.grupo === 'Grupo 1';
@@ -100,22 +163,14 @@ function openPeriod_(periodoRaw) {
     }),
   };
 
-  const periodLabel = formatPeriodLabel_(periodo);
-  const counts = {};
+  // --- Fase 2: escrituras (solo si toda la validación pasó) ---
 
-  for (var i = 0; i < GROUP_SHEETS.length; i++) {
-    var groupName = GROUP_SHEETS[i];
-    var sheet = spreadsheet.getSheetByName(groupName);
-    if (!sheet) {
-      return {
-        ok: false,
-        error: 'No existe la hoja ' + groupName + '.',
-        message: 'La planilla debe contener las pestañas Grupo 1 y Grupo 2.',
-      };
-    }
-    var people = byGroup[groupName];
-    regenerateGroupSheet_(sheet, people, periodLabel);
-    counts[groupName] = people.length;
+  const counts = {};
+  for (var g = 0; g < GROUP_SHEETS.length; g++) {
+    var name = GROUP_SHEETS[g];
+    var people = byGroup[name];
+    regenerateGroupSheet_(groupSheets[name], people, periodLabel);
+    counts[name] = people.length;
   }
 
   writeSistemaOpen_(sistema, periodo);
@@ -128,6 +183,133 @@ function openPeriod_(periodoRaw) {
     grupos: counts,
     message: 'Período abierto correctamente.',
   };
+}
+
+/**
+ * Valida el padrón completo antes de abrir.
+ * Rechaza IDs duplicados y grupos distintos de Grupo 1 / Grupo 2.
+ */
+function validatePersonasCatalog_(sheet) {
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    return { ok: true, activePeople: [], details: [] };
+  }
+
+  var values = sheet.getRange(2, 1, lastRow - 1, 4).getDisplayValues();
+  var seenIds = {};
+  var activePeople = [];
+  var details = [];
+
+  for (var i = 0; i < values.length; i++) {
+    var rowNumber = i + 2;
+    var id = String(values[i][0] || '').trim();
+    var nombre = String(values[i][1] || '').trim();
+    var grupoRaw = String(values[i][2] || '').trim();
+    var activoRaw = values[i][3];
+
+    if (!id && !nombre && !grupoRaw && !String(activoRaw || '').trim()) {
+      continue;
+    }
+
+    if (!id || !nombre) {
+      details.push({
+        row: rowNumber,
+        id: id || null,
+        error: 'La fila debe tener ID y Nombre.',
+      });
+      continue;
+    }
+
+    if (seenIds[id]) {
+      details.push({
+        row: rowNumber,
+        id: id,
+        error: 'ID duplicado (también en fila ' + seenIds[id] + ').',
+      });
+      continue;
+    }
+    seenIds[id] = rowNumber;
+
+    var grupo = normalizeGrupo_(grupoRaw);
+    if (!grupo) {
+      details.push({
+        row: rowNumber,
+        id: id,
+        error: 'Grupo inválido "' + grupoRaw + '". Solo se admiten Grupo 1 y Grupo 2.',
+      });
+      continue;
+    }
+
+    if (isActivo_(activoRaw)) {
+      activePeople.push({ id: id, nombre: nombre, grupo: grupo });
+    }
+  }
+
+  if (details.length) {
+    return {
+      ok: false,
+      error: 'El padrón Personas no es válido.',
+      message:
+        'Se encontraron ' +
+        details.length +
+        ' problema(s) en Personas (IDs duplicados, filas incompletas o grupos inválidos).',
+      details: details,
+      activePeople: [],
+    };
+  }
+
+  return { ok: true, activePeople: activePeople, details: [] };
+}
+
+/**
+ * Detecta residuos de un período anterior en una hoja de grupo.
+ * Bloquea la regeneración automática si hay personas o un espejo B3 distinto.
+ */
+function inspectGroupSheetPriorData_(sheet, groupName, periodLabel) {
+  var b3 = String(sheet.getRange('B3').getDisplayValue() || '').trim();
+  var lastRow = sheet.getLastRow();
+  var peopleCount = 0;
+
+  if (lastRow >= 7) {
+    var rows = sheet.getRange(7, 1, lastRow - 6, 2).getDisplayValues();
+    for (var r = 0; r < rows.length; r++) {
+      if (String(rows[r][0] || '').trim() && String(rows[r][1] || '').trim()) {
+        peopleCount++;
+      }
+    }
+  }
+
+  if (peopleCount > 0) {
+    return {
+      blocked: true,
+      b3: b3,
+      peopleCount: peopleCount,
+      message:
+        groupName +
+        ' tiene ' +
+        peopleCount +
+        ' persona(s) cargada(s)' +
+        (b3 ? ' (B3="' + b3 + '")' : '') +
+        '.',
+    };
+  }
+
+  if (b3 && b3 !== periodLabel) {
+    return {
+      blocked: true,
+      b3: b3,
+      peopleCount: 0,
+      message:
+        groupName +
+        ' tiene el espejo B3="' +
+        b3 +
+        '" (período distinto de "' +
+        periodLabel +
+        '").',
+    };
+  }
+
+  return { blocked: false, b3: b3, peopleCount: 0 };
 }
 
 function readSystemState_() {
@@ -190,25 +372,6 @@ function writeSistemaMap_(sheet, map) {
   sheet.getRange(1, 1, rows.length, 2).setValues(rows);
 }
 
-function readActivePersonas_(sheet) {
-  var lastRow = sheet.getLastRow();
-  if (lastRow < 2) return [];
-
-  var values = sheet.getRange(2, 1, lastRow - 1, 4).getDisplayValues();
-  var people = [];
-
-  for (var i = 0; i < values.length; i++) {
-    var id = String(values[i][0] || '').trim();
-    var nombre = String(values[i][1] || '').trim();
-    var grupo = normalizeGrupo_(values[i][2]);
-    var activo = isActivo_(values[i][3]);
-    if (!id || !nombre || !activo || !grupo) continue;
-    people.push({ id: id, nombre: nombre, grupo: grupo });
-  }
-
-  return people;
-}
-
 function regenerateGroupSheet_(sheet, people, periodLabel) {
   sheet.getRange('B3').setValue(periodLabel);
 
@@ -235,9 +398,6 @@ function formatPeriodLabel_(periodoKey) {
   var parts = periodoKey.split('-');
   var year = Number(parts[0]);
   var monthIndex = Number(parts[1]) - 1;
-  var date = new Date(year, monthIndex, 1);
-  var label = Utilities.formatDate(date, Session.getScriptTimeZone() || 'America/Argentina/Buenos_Aires', 'MMMM yyyy');
-  // Utilities may return English depending on locale; force Spanish names.
   var months = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
