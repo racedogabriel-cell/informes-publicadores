@@ -18,11 +18,12 @@
   z-index: 20;
   display: flex;
   flex-wrap: wrap;
-  gap: 12px 18px;
+  gap: 8px 14px;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 18px;
-  background: rgba(255, 255, 255, 0.92);
+  padding: 6px 14px;
+  min-height: 0;
+  background: rgba(255, 255, 255, 0.94);
   border-bottom: 1px solid var(--line);
   backdrop-filter: blur(10px);
 }
@@ -30,55 +31,54 @@
 .encargados-brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   min-width: 0;
 }
 
 .encargados-brand .brand-mark {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  font-size: 0.82rem;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  font-size: 0.72rem;
 }
 
 .encargados-brand h1 {
   margin: 0;
-  font-size: 1.05rem;
-  line-height: 1.15;
+  font-size: 0.95rem;
+  line-height: 1.1;
 }
 
 .encargados-brand .eyebrow {
-  margin: 0 0 1px;
-  font-size: 0.72rem;
+  display: none;
 }
 
 .encargados-toolbar {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
   align-items: center;
 }
 
 .encargados-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
 }
 
 .encargados-meta-chip {
   display: inline-flex;
   align-items: baseline;
-  gap: 6px;
-  padding: 6px 10px;
+  gap: 5px;
+  padding: 4px 9px;
   border-radius: 999px;
   background: var(--primary-soft);
   color: var(--ink);
-  font-size: 0.86rem;
+  font-size: 0.8rem;
 }
 
 .encargados-meta-label {
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: 0.66rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -89,9 +89,9 @@
 }
 
 .button-compact {
-  padding: 8px 14px;
-  border-radius: 10px;
-  font-size: 0.88rem;
+  padding: 6px 12px;
+  border-radius: 9px;
+  font-size: 0.82rem;
 }
 
 .button:disabled {
@@ -101,7 +101,7 @@
 
 .encargados-main {
   min-height: 0;
-  padding: 12px 14px 14px;
+  padding: 8px 10px 10px;
 }
 
 .encargados-board {
@@ -110,7 +110,7 @@
   display: grid;
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: 12px;
   box-shadow: var(--shadow);
   overflow: hidden;
 }
@@ -120,22 +120,29 @@
   overflow: auto;
 }
 
+.encargados-status {
+  margin: 0;
+  padding: 18px 16px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
 .encargados-table {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
   table-layout: fixed;
-  font-size: 0.84rem;
+  font-size: 0.82rem;
 }
 
 .encargados-table thead th {
   position: sticky;
   top: 0;
   z-index: 5;
-  padding: 8px 8px;
+  padding: 6px 6px;
   background: #eef5f1;
   color: var(--muted);
-  font-size: 0.68rem;
+  font-size: 0.64rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -144,7 +151,7 @@
 }
 
 .encargados-table tbody td {
-  padding: 3px 6px;
+  padding: 2px 5px;
   border-bottom: 1px solid #edf2ef;
   vertical-align: middle;
 }
@@ -161,25 +168,42 @@
   border-bottom: 0;
 }
 
+/* Hooks visuales para estados futuros (aún no aplicados por lógica de negocio). */
+.encargados-table tbody tr.is-complete td:first-child {
+  box-shadow: inset 3px 0 0 #2f9e6b;
+}
+
+.encargados-table tbody tr.is-pending td:first-child {
+  box-shadow: inset 3px 0 0 #d69e2e;
+}
+
+.encargados-table tbody tr.is-error td:first-child {
+  box-shadow: inset 3px 0 0 var(--danger);
+}
+
+.encargados-table tbody tr.is-error td {
+  background: #fff5f4;
+}
+
 .col-id {
-  width: 40px;
+  width: 32px;
   text-align: center;
 }
 
 .col-name {
-  width: 28%;
+  width: 38%;
 }
 
 .col-privilege {
-  width: 118px;
+  width: 96px;
 }
 
 .col-hours {
-  width: 72px;
+  width: 56px;
 }
 
 .col-studies {
-  width: 58px;
+  width: 44px;
 }
 
 .col-comments {
@@ -197,12 +221,12 @@
   width: 100%;
   box-sizing: border-box;
   border: 1px solid transparent;
-  border-radius: 8px;
-  padding: 4px 7px;
+  border-radius: 7px;
+  padding: 3px 6px;
   background: transparent;
   color: var(--ink);
-  font-size: 0.84rem;
-  line-height: 1.2;
+  font-size: 0.82rem;
+  line-height: 1.15;
   transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
 }
 
@@ -220,6 +244,7 @@
 
 .encargados-table .field-select {
   cursor: pointer;
+  padding-right: 2px;
 }
 
 .encargados-table .field-hours,
@@ -229,19 +254,19 @@
 
 @media (max-width: 900px) {
   .encargados-topbar {
-    padding: 10px 12px;
+    padding: 6px 10px;
   }
 
   .encargados-main {
-    padding: 10px;
+    padding: 8px;
   }
 
   .col-name {
-    width: 34%;
+    width: 42%;
   }
 
   .col-privilege {
-    width: 108px;
+    width: 90px;
   }
 }
 
@@ -249,9 +274,5 @@
   .encargados-toolbar {
     width: 100%;
     justify-content: space-between;
-  }
-
-  .button-compact {
-    width: auto;
   }
 }
