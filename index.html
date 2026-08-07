@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#155e4b" />
+    <meta name="description" content="Consulta de informes mensuales de publicadores." />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="css/variables.css" />
+    <link rel="stylesheet" href="css/layout.css" />
+    <link rel="stylesheet" href="css/components.css" />
+    <link rel="stylesheet" href="css/app.css" />
+    <title>Informes de publicadores</title>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Navegación principal">
+        <a class="brand" href="#inicio" aria-label="Ir al inicio">
+          <span class="brand-mark">IP</span>
+          <span>Informes<br /><small>de publicadores</small></span>
+        </a>
+        <nav class="navigation" id="primary-navigation"></nav>
+        <div class="sidebar-footer">Datos protegidos y de uso interno</div>
+      </aside>
+      <main class="main-content">
+        <header class="topbar">
+          <button class="menu-button" id="menu-button" type="button" aria-label="Abrir menú">☰</button>
+          <div>
+            <p class="eyebrow" id="page-eyebrow"></p>
+            <h1 id="page-title">Inicio</h1>
+          </div>
+        </header>
+        <div id="app" class="page-content" tabindex="-1"></div>
+      </main>
+    </div>
+    <script type="module" src="js/app.js"></script>
+  </body>
+</html>

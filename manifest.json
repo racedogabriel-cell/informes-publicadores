@@ -1,0 +1,11 @@
+{
+  "name": "Informes de publicadores",
+  "short_name": "Informes",
+  "description": "Consulta de informes mensuales de publicadores.",
+  "lang": "es-AR",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f6f8f6",
+  "theme_color": "#155e4b",
+  "icons": [{ "src": "assets/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

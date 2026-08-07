@@ -1,0 +1,54 @@
+.view-intro { margin:0 0 24px; color:var(--muted); max-width:700px; }.person-name { font-weight:650; }.muted { color:var(--muted); }.status-missing { color:var(--warning); font-weight:650; }.status-ready { color:var(--primary); font-weight:650; }
+.report-summary { margin:0 0 20px; }.report-list { margin-top:20px; }
+
+.informes-view { display:grid; gap:18px; }
+.month-verdict-block {
+  padding:28px clamp(20px, 3vw, 36px);
+  border-radius:var(--radius);
+  border:1px solid var(--line);
+  background:linear-gradient(180deg, #ffffff 0%, #f3f7f4 100%);
+  box-shadow:var(--shadow);
+}
+.month-verdict-block.is-complete { border-color:#9bc7b4; background:linear-gradient(180deg, #f3faf6 0%, #e7f5ee 100%); }
+.month-verdict-block.is-incomplete { border-color:#e7c48a; background:linear-gradient(180deg, #fffaf0 0%, #fff3dc 100%); }
+.month-picker-inline { margin-bottom:18px; }
+.month-verdict-body { text-align:center; padding:12px 0 4px; }
+.month-verdict-label { margin:0; font-size:clamp(1.8rem, 4vw, 2.4rem); font-weight:750; line-height:1.15; color:var(--ink); }
+.month-verdict-label.is-complete { color:var(--primary); }
+.month-verdict-label.is-incomplete { color:var(--warning); }
+.month-verdict-pending { margin:12px 0 0; font-size:1.15rem; font-weight:700; color:var(--warning); }
+
+.informes-pending-block { padding:20px 22px; }
+.informes-pending-empty { margin:0; color:var(--primary); font-weight:650; }
+.pending-group + .pending-group { margin-top:18px; }
+.pending-group-name { margin:0 0 8px; font-weight:700; color:var(--muted); font-size:.9rem; }
+.pending-list { margin:0; padding-left:18px; display:grid; gap:6px; }
+
+.informes-groups-block {
+  display:grid;
+  gap:10px;
+  padding:4px 2px;
+}
+.group-status-row {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  font-weight:650;
+}
+.group-status-name { color:var(--ink); }
+.group-status-metric { font-variant-numeric:tabular-nums; color:var(--ink); }
+
+.informes-sync-block {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:16px;
+  flex-wrap:wrap;
+}
+.informes-sync-meta { margin:0; font-size:.9rem; }
+.informes-status { margin:0; color:var(--muted); font-weight:650; }
+.informes-empty { padding:20px 22px; }
+
+.data-table tr.is-pending-row { background:#fff6e6; }
+.data-table tr.is-pending-row td { box-shadow:inset 3px 0 0 var(--warning); }
