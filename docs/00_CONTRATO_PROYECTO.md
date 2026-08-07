@@ -38,7 +38,7 @@ El detalle del sprint vigente está en `docs/06_SPRINT_ACTUAL.md`.
 - Cualquier fuente de datos distinta de Google Sheets.
 - Implementar funcionalidades sin especificación funcional aprobada.
 
-Los módulos Inicio, Personas, Estadísticas y Configuración **existen y están aprobados** como parte de la arquitectura. Su estado actual es **No iniciado**: no se implementan funcionalidades de esos módulos hasta contar con especificación funcional aprobada.
+Los módulos Inicio, Personas, Períodos, Estadísticas y Configuración **existen y están aprobados** como parte de la arquitectura. Su estado actual es **No iniciado**: no se implementan funcionalidades de esos módulos hasta contar con especificación funcional aprobada (Períodos ya tiene especificación de diseño en `docs/10_ESPECIFICACION_PERIODOS.md`, pendiente de sprint de implementación).
 
 ## Tecnologías aprobadas
 
@@ -75,9 +75,14 @@ Detalle: `docs/01_ARQUITECTURA.md`.
 
 Google Sheets es la única fuente de datos del sistema.
 
-- Los encargados de grupo completan los informes de su pestaña (`Grupo 1` o `Grupo 2`), preferentemente vía Portal Encargados cuando esté implementado.
-- Apps Script conecta ambos portales con la planilla.
-- El Portal General consulta el consolidado en solo lectura.
+El modelo de datos aprobado separa tres conceptos (detalle en `docs/09_MODELO_DATOS_SHEETS.md`):
+
+- **`Personas`:** padrón maestro (única fuente de verdad sobre personas). Lo administra solo el Encargado General.
+- **`Grupo 1` / `Grupo 2`:** período actualmente abierto (no son padrón). Los encargados de grupo completan solo el informe del período (columnas C–F), preferentemente vía Portal Encargados cuando esté implementado.
+- **`Historial`:** fotografías inmutables de períodos cerrados.
+
+Apps Script conecta ambos portales con la planilla.  
+El Portal General consulta el consolidado del período abierto en solo lectura (módulo Informes) y, en el futuro, gestiona el ciclo mensual (módulo Períodos).
 
 No utilizar `localStorage` como fuente de verdad.
 
@@ -86,10 +91,13 @@ No utilizar `localStorage` como fuente de verdad.
 1. Inicio
 2. Personas
 3. Informes
-4. Estadísticas
-5. Configuración
+4. Períodos
+5. Estadísticas
+6. Configuración
 
 Estos módulos existen como estructura oficial de navegación del **Portal General**. Que un módulo exista no significa que deba estar implementado.
+
+El módulo **Períodos** está documentado en `docs/10_ESPECIFICACION_PERIODOS.md` (estado **No iniciado**: no implementar hasta sprint aprobado).
 
 El **Portal Encargados** tiene su propia experiencia (carga del grupo) documentada en `docs/08_ESPECIFICACION_PORTAL_ENCARGADOS.md` y no incorpora esos módulos en su navegación.
 
@@ -136,7 +144,7 @@ Si existe una diferencia entre la documentación y el código, el código deber�
 - Dashboards demo.
 - KPIs ficticios.
 - Placeholders funcionales que simulen producto terminado.
-- Implementar funcionalidades de Inicio, Personas, Estadísticas o Configuración sin especificación funcional aprobada.
+- Implementar funcionalidades de Inicio, Personas, Períodos, Estadísticas o Configuración sin especificación funcional aprobada y sin sprint que lo autorice.
 - Código muerto o funciones sin uso incorporadas «por si acaso».
 - Archivos o experimentos ajenos al contrato.
 - Bases de datos, Firebase, SQL u otros backends no listados.

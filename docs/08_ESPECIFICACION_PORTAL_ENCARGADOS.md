@@ -30,7 +30,7 @@ Google Sheets
 ### Separación de experiencias
 
 - El Portal Encargados tiene navegación y UX propias.
-- **No** muestra módulos del Portal General (Inicio, Personas, Informes, Estadísticas, Configuración).
+- **No** muestra módulos del Portal General (Inicio, Personas, Informes, Períodos, Estadísticas, Configuración).
 - El Portal General **no** incluye funciones de edición del Portal Encargados.
 - No es una aplicación con perfiles: son dos entradas, no dos modos de la misma UI.
 
@@ -68,7 +68,9 @@ El encargado general seguirá consultando el consolidado en el **Portal General 
 - Selección libre de grupo por el encargado.
 - Edición del mes (`B3`).
 - Edición de `id` o `nombre`.
-- Administración del padrón (altas/bajas).
+- Administración del padrón (`Personas`: altas/bajas/cambios de grupo o nombre).
+- Abrir o cerrar períodos (módulo Períodos).
+- Edición o alteración del `Historial`.
 - Guardado automático por cada fila.
 - Otras congregaciones.
 - Autenticación con proveedores externos (Firebase, OAuth de terceros, etc.).
@@ -385,37 +387,47 @@ No se introducen backends intermedios ni tecnologías nuevas.
 
 ## 9. Integración con Google Sheets
 
+Modelo de datos completo: `docs/09_MODELO_DATOS_SHEETS.md`.
+
 ### 9.1 Planilla compartida
 
 - Mismo Spreadsheet ID del proyecto.
-- Pestañas: `Grupo 1`, `Grupo 2`.
+- El Portal Encargados opera solo sobre la hoja de su grupo en el **período abierto** (`Grupo 1` o `Grupo 2`).
+- No lee ni escribe `Personas` ni `Historial`.
 
-### 9.2 Layout (sin cambio de modelo)
+### 9.2 Layout del período abierto
 
 | Ubicación | Uso |
 |---|---|
-| `B3` | Mes informado (solo lectura desde Portal Encargados) |
+| `B3` | Período / mes informado (solo lectura desde Portal Encargados) |
 | Fila 5 | Encabezados |
-| Desde fila 7 | Datos |
-| Columna A | ID (nunca editable) |
-| Columna B | Nombre (nunca editable) |
+| Desde fila 7 | Datos del período |
+| Columna A | ID (desde padrón al regenerar; nunca editable) |
+| Columna B | Nombre (desde padrón al regenerar; nunca editable) |
 | Columna C | Privilegio (editable) |
 | Columna D | Horas (editable) |
 | Columna E | Estudios (editable) |
 | Columna F | Comentarios (editable) |
 
-### 9.3 Escritura
+Las columnas A y B **no** son padrón editable: provienen de `Personas` cuando el Encargado General abre/regenera el período (módulo Períodos). El encargado de grupo nunca las modifica.
+
+### 9.3 Escritura (cuando se apruebe la escritura definitiva)
 
 - Cada persona se escribe de forma independiente dentro de la misma operación de guardado de grupo.
 - Solo se modifican C–F de las filas que validaron correctamente.
 - Las filas con error no se escriben.
+- No se crean filas nuevas.
+- No se modifican A–B ni `B3`.
 - Debe enviarse valores compatibles con las validaciones existentes de la planilla.
+
+*Nota de etapa:* el canal POST dry-run valida recepción sin escribir celdas. La escritura real permanece pendiente de auditoría/aprobación; esta sección no se implementa en el presente cambio documental.
 
 ### 9.4 Transición operativa
 
-- Portal Encargados reemplaza progresivamente la edición directa en Sheets.
+- Portal Encargados reemplaza progresivamente la edición directa en Sheets del período abierto.
+- El padrón y el ciclo mensual viven en Personas / Períodos (Portal General).
 - Mientras coexisten, Sheets sigue siendo la fuente de verdad.
-- Portal General solo consulta.
+- Portal General (Informes) solo consulta el período abierto.
 
 ---
 
@@ -459,9 +471,11 @@ No se introducen backends intermedios ni tecnologías nuevas.
 
 ### 10.8 Alta/baja de integrantes fuera del Portal
 
-- El Portal no da de alta ni de baja.
-- IDs desaparecidos → error en esas personas.
-- Personas nuevas → aparecen al recargar.
+- El Portal Encargados no da de alta ni de baja.
+- Las altas/bajas y cambios de grupo/nombre ocurren en el padrón `Personas` (Encargado General) y se materializan en el período abierto al regenerar/abrir período (módulo Períodos).
+- IDs desaparecidos del período abierto → error en esas personas al guardar.
+- Personas nuevas en la hoja de trabajo → aparecen al recargar.
+- Cambios en el padrón **no** reescriben el `Historial`.
 
 ### 10.9 Doble clic en Guardar Grupo
 

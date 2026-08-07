@@ -1,6 +1,8 @@
 # Conector de Google Sheets
 
-Este script lee las pestañas `Grupo 1` y `Grupo 2` de la planilla de informes. No lee ni entrega teléfonos, contactos de emergencia u otros datos del padrón.
+Este script atiende la lectura del período abierto (`Grupo 1` / `Grupo 2`) y el canal POST dry-run del Portal Encargados. No lee ni entrega teléfonos, contactos de emergencia u otros datos del padrón extendido.
+
+El modelo de datos aprobado (`docs/09_MODELO_DATOS_SHEETS.md`) incorpora además las hojas `Personas` e `Historial`. Su uso operativo (regeneración de período, cierre a historial) corresponde al módulo Períodos y **no** está implementado en este conector hasta un sprint explícito.
 
 ## Instalación en la planilla
 

@@ -66,7 +66,7 @@ No hay otras congregaciones en el alcance actual.
 
 ## 2026-08-07 — Módulos oficiales y estados
 
-Módulos oficiales: Inicio, Personas, Informes, Estadísticas, Configuración.
+Módulos oficiales del Portal General: Inicio, Personas, Informes, Períodos, Estadísticas, Configuración.
 
 Estados posibles: No iniciado, En desarrollo, Terminado.
 
@@ -76,8 +76,10 @@ Que un módulo exista en la navegación no implica que deba implementarse.
 
 - Infraestructura: Terminado.
 - Informes: En desarrollo.
+- Portal Encargados (lectura + canal POST dry-run): En desarrollo (escritura definitiva pendiente de auditoría).
 - Inicio: No iniciado.
 - Personas: No iniciado.
+- Períodos: No iniciado (diseño documentado).
 - Estadísticas: No iniciado.
 - Configuración: No iniciado.
 
@@ -109,7 +111,7 @@ Proceso oficial: diseño funcional → aprobación → implementación → audit
 
 ## 2026-08-07 — Módulos aprobados vs. implementación
 
-Inicio, Personas, Informes, Estadísticas y Configuración existen y están aprobados como módulos oficiales.
+Inicio, Personas, Informes, Períodos, Estadísticas y Configuración existen y están aprobados como módulos oficiales del Portal General.
 
 Un módulo en estado **No iniciado** no se implementa hasta contar con especificación funcional aprobada. Eso no lo excluye del proyecto.
 
@@ -118,3 +120,26 @@ Un módulo en estado **No iniciado** no se implementa hasta contar con especific
 Toda funcionalidad debe pertenecer a un módulo oficial e indicar módulo, objetivo, estado y sprint.
 
 La documentación aprobada prima sobre el código: ante divergencia, se adapta el código.
+
+## 2026-08-07 — Modelo Personas / período abierto / Historial
+
+Queda aprobado el modelo de datos con tres conceptos separados:
+
+1. **`Personas`:** padrón maestro (ID, Nombre, Grupo, Activo). Solo Encargado General.
+2. **`Grupo 1` / `Grupo 2`:** período actualmente abierto (no padrón). A–B desde el padrón al regenerar; C–F = informe del período.
+3. **`Historial`:** fotografías inmutables al cerrar cada período.
+
+Cambios posteriores de nombre o grupo en el padrón no alteran períodos ya cerrados.
+
+Documento normativo: `docs/09_MODELO_DATOS_SHEETS.md`.
+
+## 2026-08-07 — Módulo Períodos
+
+Se incorpora **Períodos** como módulo oficial del Portal General (estado No iniciado).
+
+Responsabilidades de diseño: abrir/cerrar período, regenerar hojas de grupo desde `Personas`, copiar al `Historial`, preparar el siguiente período.
+
+Especificación: `docs/10_ESPECIFICACION_PERIODOS.md`.  
+No implementar hasta sprint explícito.
+
+Lista actualizada de módulos del Portal General: Inicio, Personas, Informes, Períodos, Estadísticas, Configuración.

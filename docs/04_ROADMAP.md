@@ -20,7 +20,13 @@ Alcance aprobado: consulta de solo lectura desde Apps Script, consolidación de 
 
 **Estado:** No iniciado.
 
-Módulo oficial aprobado. Sin especificación funcional aprobada para implementación.
+Módulo oficial del padrón maestro (`Personas`). Diseño de modelo en `docs/09_MODELO_DATOS_SHEETS.md`. Sin especificación de UI / sprint de implementación.
+
+## Períodos
+
+**Estado:** No iniciado.
+
+Módulo oficial del ciclo mensual. Diseño aprobado en `docs/10_ESPECIFICACION_PERIODOS.md`. Sin implementar.
 
 ## Estadísticas
 

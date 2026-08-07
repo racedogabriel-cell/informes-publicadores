@@ -80,8 +80,9 @@ Responsabilidad: hospedar y servir el repositorio estático.
 Responsabilidad: consola de consulta del encargado general.
 
 - Entrada: `/` (p. ej. `index.html` en la raíz).
-- Navegación propia con los módulos oficiales del Portal General (Inicio, Personas, Informes, Estadísticas, Configuración).
-- El módulo Informes consulta Apps Script, consolida ambos grupos y muestra el resultado en solo lectura.
+- Navegación propia con los módulos oficiales del Portal General (Inicio, Personas, Informes, Períodos, Estadísticas, Configuración).
+- El módulo Informes consulta Apps Script, consolida ambos grupos del **período abierto** y muestra el resultado en solo lectura.
+- El módulo Períodos (diseño aprobado; sin implementar) gestionará abrir/cerrar período, regenerar hojas de grupo desde `Personas` y archivar en `Historial`.
 - No incluye la experiencia ni las funciones de edición del Portal Encargados.
 - No es fuente de datos.
 
@@ -120,9 +121,9 @@ Los recursos comunes **no** unifican la navegación ni mezclan las experiencias 
 Responsabilidad: conector compartido entre ambos portales y Google Sheets.
 
 - Un mismo proyecto/endpoint atiende a Portal General y Portal Encargados.
-- Lectura: `doGet` / `action=reports` (y variantes de lectura que se aprueben).
-- Escritura: `doPost` para el guardado del Portal Encargados (procesamiento independiente por persona).
-- Lee y escribe las pestañas `Grupo 1` y `Grupo 2` según la operación.
+- Lectura: `doGet` / `action=reports` (período abierto: `Grupo 1` y `Grupo 2`; variantes futuras según se aprueben).
+- Escritura de informes: `doPost` para el guardado del Portal Encargados (procesamiento independiente por persona; solo C–F del período abierto).
+- Escritura de ciclo mensual (futuro, módulo Períodos): regenerar período abierto desde `Personas` y copiar cierres a `Historial` — distinta del guardado de encargados.
 - No debe exponer teléfonos, direcciones, contactos de emergencia ni otros datos sensibles ajenos al contrato de informes.
 
 La URL del endpoint se configura en el cliente (p. ej. `js/config.js` o equivalente compartido). El código fuente del conector está en `apps-script/`.
@@ -131,14 +132,23 @@ La URL del endpoint se configura en el cliente (p. ej. `js/config.js` o equivale
 
 ## Google Sheets
 
-Responsabilidad: fuente única de datos de los informes mensuales.
+Responsabilidad: fuente única de datos del sistema.
 
-- Pestañas: `Grupo 1` y `Grupo 2`.
-- Celda `B3`: mes informado.
+Modelo aprobado (detalle: `docs/09_MODELO_DATOS_SHEETS.md`):
+
+| Pestaña | Concepto |
+|---|---|
+| `Personas` | Padrón maestro (ID, Nombre, Grupo, Activo). Solo Encargado General. |
+| `Grupo 1` / `Grupo 2` | Período actualmente abierto (no padrón). |
+| `Historial` | Períodos cerrados; inmutable. |
+
+Período abierto (`Grupo 1` / `Grupo 2`):
+
+- Celda `B3`: período / mes informado.
 - Fila `5`: encabezados.
 - Datos desde la fila `7`.
-- Columnas: ID, Nombre del publicador, Privilegio, Horas, Estudios, Comentarios.
-- Es la única fuente de datos del sistema.
+- Columnas A–B (`ID`, `Nombre`): provienen del padrón al regenerar el período.
+- Columnas C–F: Privilegio, Horas, Estudios, Comentarios (informe del período).
 
 ---
 
@@ -154,9 +164,16 @@ Responsabilidad: fuente única de datos de los informes mensuales.
 ### Edición (Portal Encargados)
 
 1. El encargado de grupo abre `/encargados/` (grupo determinado).
-2. El portal lee los datos de su grupo vía Apps Script.
-3. El encargado edita y pulsa **Guardar Grupo**.
+2. El portal lee los datos de su grupo del **período abierto** vía Apps Script.
+3. El encargado edita solo C–F y pulsa **Guardar Grupo**.
 4. Apps Script procesa cada persona de forma independiente y responde el resultado.
-5. Los cambios quedan en Google Sheets y son visibles luego en el Portal General.
+5. Los cambios del período abierto quedan en `Grupo 1` / `Grupo 2` y son visibles luego en Informes.
+
+### Ciclo mensual (Portal General → Períodos; futuro)
+
+1. El Encargado General mantiene `Personas`.
+2. Abre período → regenera `Grupo 1` / `Grupo 2` desde el padrón.
+3. Tras la carga, cierra período → copia fotografía a `Historial`.
+4. Prepara el siguiente período.
 
 No hay otras vías de datos aprobadas (sin Firebase, SQL u otros backends).
