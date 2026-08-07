@@ -20,18 +20,23 @@ El detalle del sprint vigente está en `docs/06_SPRINT_ACTUAL.md`.
 
 ### Incluido en el proyecto
 
-- Aplicación modular para administrar informes de actividad de una congregación.
-- PWA estática publicada en GitHub Pages.
-- Lectura de datos desde Google Sheets a través de Google Apps Script.
-- Los cinco módulos oficiales como parte de la arquitectura.
-- Desarrollo modular: un módulo a la vez, según estado y especificación aprobada.
+- Administración de informes de actividad de una congregación.
+- Un único repositorio publicado en GitHub Pages con dos entradas independientes:
+  - `/` → Portal General (consulta);
+  - `/encargados/` → Portal Encargados (edición).
+- Lectura y, cuando esté aprobado e implementado, escritura de datos vía Google Apps Script sobre Google Sheets.
+- Recursos comunes compartidos (CSS, utilidades, reglas de negocio) y documentación única.
+- Módulos oficiales del Portal General como estructura de navegación de ese portal.
+- Desarrollo modular: según especificación y aprobación.
 
 ### No incluido sin aprobación explícita
 
-- Escritura desde la PWA hacia Google Sheets.
+- Dos repositorios independientes para cada portal.
+- Una única aplicación con perfiles de usuario.
+- Mezclar en un mismo portal la navegación/UX del otro.
 - Otras congregaciones.
 - Cualquier fuente de datos distinta de Google Sheets.
-- Implementar funcionalidades de un módulo en estado **No iniciado** sin especificación funcional aprobada.
+- Implementar funcionalidades sin especificación funcional aprobada.
 
 Los módulos Inicio, Personas, Estadísticas y Configuración **existen y están aprobados** como parte de la arquitectura. Su estado actual es **No iniciado**: no se implementan funcionalidades de esos módulos hasta contar con especificación funcional aprobada.
 
@@ -39,9 +44,9 @@ Los módulos Inicio, Personas, Estadísticas y Configuración **existen y están
 
 | Capa | Tecnología |
 |---|---|
-| Hosting | GitHub Pages |
-| Cliente | PWA estática (HTML + CSS + JavaScript) |
-| Backend de lectura | Google Apps Script |
+| Hosting | GitHub Pages (un repositorio, dos entradas) |
+| Cliente | HTML + CSS + JavaScript (Portal General y Portal Encargados) |
+| Backend | Google Apps Script |
 | Datos | Google Sheets |
 
 No están aprobados: bases de datos propias, Firebase, SQL u otros servicios de datos.
@@ -49,28 +54,34 @@ No están aprobados: bases de datos propias, Firebase, SQL u otros servicios de 
 ## Arquitectura oficial
 
 ```text
-GitHub Pages
-↓
-PWA (HTML + CSS + JavaScript)
-↓
+GitHub Pages (un solo repositorio)
+├── `/` → Portal General (consulta)
+└── `/encargados/` → Portal Encargados (edición)
+         ↓
 Google Apps Script
-↓
+         ↓
 Google Sheets
 ```
 
+Recursos compartidos: Apps Script, Google Sheets, CSS/utilidades/reglas de negocio comunes y documentación.
+
+Cada portal tiene navegación y UX propias. El Portal Encargados no muestra módulos del Portal General. El Portal General no incluye funciones de edición del Portal Encargados.
+
 No existe ninguna otra fuente de datos.
+
+Detalle: `docs/01_ARQUITECTURA.md`.
 
 ## Fuente única de datos
 
 Google Sheets es la única fuente de datos del sistema.
 
-- Los encargados de grupo cargan los informes en las pestañas `Grupo 1` y `Grupo 2`.
-- Apps Script expone esos datos como JSON de solo lectura.
-- La PWA consulta ese endpoint.
+- Los encargados de grupo completan los informes de su pestaña (`Grupo 1` o `Grupo 2`), preferentemente vía Portal Encargados cuando esté implementado.
+- Apps Script conecta ambos portales con la planilla.
+- El Portal General consulta el consolidado en solo lectura.
 
 No utilizar `localStorage` como fuente de verdad.
 
-## Módulos oficiales
+## Módulos oficiales (Portal General)
 
 1. Inicio
 2. Personas
@@ -78,7 +89,9 @@ No utilizar `localStorage` como fuente de verdad.
 4. Estadísticas
 5. Configuración
 
-Estos módulos existen como estructura oficial de la aplicación. Que un módulo exista no significa que deba estar implementado.
+Estos módulos existen como estructura oficial de navegación del **Portal General**. Que un módulo exista no significa que deba estar implementado.
+
+El **Portal Encargados** tiene su propia experiencia (carga del grupo) documentada en `docs/08_ESPECIFICACION_PORTAL_ENCARGADOS.md` y no incorpora esos módulos en su navegación.
 
 ## Estados posibles de un módulo
 

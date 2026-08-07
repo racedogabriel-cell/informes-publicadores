@@ -19,13 +19,32 @@ Motivo: durante el desarrollo se habían incorporado decisiones no aprobadas; el
 Arquitectura oficial aprobada:
 
 ```text
-GitHub Pages → PWA → Google Apps Script → Google Sheets
+GitHub Pages → cliente(s) HTML/CSS/JS → Google Apps Script → Google Sheets
 ```
 
 - GitHub Pages: hosting.
-- PWA (HTML + CSS + JavaScript): cliente de consulta.
-- Google Apps Script: backend de lectura.
+- Cliente: interfaces estáticas.
+- Google Apps Script: backend compartido.
 - Google Sheets: única fuente de datos.
+
+## 2026-08-07 — Dos entradas en un solo repositorio
+
+Queda aprobado el modelo:
+
+- **Un único repositorio.**
+- **Dos entradas independientes:**
+  - `/` → Portal General (consulta);
+  - `/encargados/` → Portal Encargados (edición).
+
+No se adoptan dos proyectos/repositorios independientes.  
+No se adopta una única aplicación con perfiles.
+
+Ambos portales comparten Apps Script, Google Sheets, recursos comunes (CSS, utilidades, reglas de negocio) y documentación.
+
+Cada portal tiene navegación y UX propias:
+
+- Portal Encargados no muestra módulos del Portal General.
+- Portal General no incluye funciones de edición del Portal Encargados.
 
 ## 2026-08-07 — Fuente única de datos
 

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#155e4b" />
+    <meta name="description" content="Portal de encargados para completar informes del grupo." />
+    <link rel="icon" href="../assets/icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="../css/variables.css" />
+    <link rel="stylesheet" href="../css/layout.css" />
+    <link rel="stylesheet" href="../css/components.css" />
+    <link rel="stylesheet" href="../css/app.css" />
+    <link rel="stylesheet" href="../css/encargados.css" />
+    <title>Portal Encargados</title>
+  </head>
+  <body class="encargados-body">
+    <div class="encargados-shell">
+      <header class="encargados-topbar">
+        <div class="encargados-brand">
+          <span class="brand-mark">PE</span>
+          <div>
+            <p class="eyebrow">Portal Encargados</p>
+            <h1>Carga de informes</h1>
+          </div>
+        </div>
+
+        <div class="encargados-toolbar" aria-label="Contexto y acciones">
+          <div class="encargados-meta">
+            <span class="encargados-meta-chip">
+              <span class="encargados-meta-label">Grupo</span>
+              <strong id="context-grupo">Grupo 1</strong>
+            </span>
+            <span class="encargados-meta-chip">
+              <span class="encargados-meta-label">Mes</span>
+              <strong id="context-mes">Agosto 2026</strong>
+            </span>
+          </div>
+          <button class="button button-compact" id="save-group" type="button" disabled title="Sin funcionalidad en esta etapa">
+            Guardar Grupo
+          </button>
+        </div>
+      </header>
+
+      <main class="encargados-main" id="encargados-app"></main>
+    </div>
+    <script type="module" src="./js/app.js"></script>
+  </body>
+</html>

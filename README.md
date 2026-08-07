@@ -5,10 +5,16 @@ PWA estática de consulta para el encargado general.
 ## Arquitectura
 
 ```text
-GitHub Pages → PWA (HTML/CSS/JS) → Google Apps Script → Google Sheets
+GitHub Pages (un repositorio)
+├── `/` → Portal General (consulta)
+└── `/encargados/` → Portal Encargados (edición)
+         ↓
+Google Apps Script → Google Sheets
 ```
 
-La única fuente de datos es Google Sheets, leída a través de Apps Script. No se usa `localStorage` ni otros servicios de datos.
+Recursos compartidos: Apps Script, Sheets, CSS/utilidades/reglas de negocio y `docs/`.
+
+Detalle: `docs/01_ARQUITECTURA.md`.
 
 ## Módulos
 
