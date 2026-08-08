@@ -309,15 +309,12 @@ function isPublicadorHours(value) {
 
 function isNumericHours(value) {
   if (value === null || value === undefined) return false;
-  if (typeof value === 'number') return Number.isFinite(value);
+  if (typeof value === 'number') return Number.isInteger(value) && value >= 0;
 
   const text = normalizeText(value);
   if (!text) return false;
   if (normalizeYesNoToken(text)) return false;
-
-  const normalized = text.replace(',', '.');
-  if (!/^-?\d+(\.\d+)?$/.test(normalized)) return false;
-  return Number.isFinite(Number(normalized));
+  return /^\d+$/.test(text);
 }
 
 /** §5 */

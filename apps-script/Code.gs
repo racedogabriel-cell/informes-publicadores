@@ -992,7 +992,7 @@ function validatePersonBusiness_(person) {
   if (!isNumericHours_(horas)) {
     return {
       ok: false,
-      error: 'Horas de ' + privilegio + ' debe ser un valor numérico (se admite . o ,).',
+      error: 'Horas de ' + privilegio + ' debe ser un entero ≥ 0 (sin decimales).',
     };
   }
 
@@ -1000,7 +1000,7 @@ function validatePersonBusiness_(person) {
     ok: true,
     values: {
       privilegio: privilegio,
-      horas: horas.replace(',', '.'),
+      horas: horas,
       estudios: estudios,
       comentarios: comentarios,
     },
@@ -1022,9 +1022,7 @@ function isNumericHours_(value) {
   var text = String(value || '').trim();
   if (!text) return false;
   if (normalizeYesNoToken_(text)) return false;
-  var normalized = text.replace(',', '.');
-  if (!/^-?\d+(\.\d+)?$/.test(normalized)) return false;
-  return isFinite(Number(normalized));
+  return /^\d+$/.test(text);
 }
 
 function parsePostPayload_(event) {

@@ -105,9 +105,7 @@ function isNumericHours(value) {
   const text = String(value ?? '').trim();
   if (!text) return false;
   if (normalizeYesNo(text)) return false;
-  const normalized = text.replace(',', '.');
-  if (!/^-?\d+(\.\d+)?$/.test(normalized)) return false;
-  return Number.isFinite(Number(normalized));
+  return /^\d+$/.test(text);
 }
 
 /** Completitud docs/07: privilegio + horas válidas. Estudios/comentarios no cuentan. */
@@ -167,8 +165,8 @@ function hoursControlHtml(privilegio, horas, nombre) {
 
   if (privilegio === 'Auxiliar' || privilegio === 'Regular') {
     const safe = String(horas || '').trim();
-    const value = /^-?\d+([.,]\d+)?$/.test(safe) ? safe : '';
-    return `<input class="field-input field-hours field-enabled" type="text" inputmode="decimal" value="${escapeHtml(value)}" placeholder="0" aria-label="${label}" />`;
+    const value = /^\d+$/.test(safe) ? safe : '';
+    return `<input class="field-input field-hours field-enabled" type="text" inputmode="numeric" pattern="[0-9]*" value="${escapeHtml(value)}" placeholder="0" aria-label="${label}" />`;
   }
 
   return `<input class="field-input field-hours field-disabled" type="text" value="" placeholder="—" aria-label="${label}" disabled />`;
@@ -263,15 +261,20 @@ function readRowPerson(row) {
   };
 }
 
-function sanitizeNumericHoursInput(event) {
+function sanitizeIntegerInput(event) {
   const input = event.target;
   if (!(input instanceof HTMLInputElement)) return;
-  if (!input.classList.contains('field-hours')) return;
-  const row = input.closest('tr');
-  const privilegio = row?.querySelector('.field-privilege')?.value ?? '';
-  if (privilegio !== 'Auxiliar' && privilegio !== 'Regular') return;
+  const isHours = input.classList.contains('field-hours');
+  const isStudies = input.classList.contains('field-studies');
+  if (!isHours && !isStudies) return;
 
-  const cleaned = input.value.replace(/[^\d.,]/g, '');
+  if (isHours) {
+    const row = input.closest('tr');
+    const privilegio = row?.querySelector('.field-privilege')?.value ?? '';
+    if (privilegio !== 'Auxiliar' && privilegio !== 'Regular') return;
+  }
+
+  const cleaned = input.value.replace(/\D/g, '');
   if (cleaned !== input.value) input.value = cleaned;
 }
 
@@ -507,7 +510,7 @@ function bindTableInteractions(root) {
   });
 
   root.addEventListener('input', (event) => {
-    sanitizeNumericHoursInput(event);
+    sanitizeIntegerInput(event);
     const row = event.target instanceof Element ? event.target.closest('tr') : null;
     if (!row || !root.contains(row)) return;
     if (event.target instanceof Element && event.target.classList.contains('field-privilege')) return;
