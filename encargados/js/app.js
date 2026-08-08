@@ -100,12 +100,29 @@ function normalizeYesNo(value) {
   return '';
 }
 
+/**
+ * Sheets suele devolver enteros como "12.0" / "5,0".
+ * Apps Script rechaza esos strings en estudios/horas numéricas.
+ */
+function normalizeIntegerField(value) {
+  const text = String(value ?? '').trim();
+  if (!text) return '';
+  if (/^\d+$/.test(text)) return text;
+  const normalized = text.replace(',', '.');
+  if (/^\d+\.0+$/.test(normalized)) return normalized.replace(/\.0+$/, '');
+  if (/^\d+\.\d+$/.test(normalized)) {
+    const num = Number(normalized);
+    if (Number.isFinite(num) && num >= 0 && Number.isInteger(num)) return String(num);
+  }
+  return text;
+}
+
 function isPublicadorHours(value) {
   return Boolean(normalizeYesNo(value));
 }
 
 function isNumericHours(value) {
-  const text = String(value ?? '').trim();
+  const text = normalizeIntegerField(value);
   if (!text) return false;
   if (normalizeYesNo(text)) return false;
   return /^\d+$/.test(text);
@@ -167,9 +184,9 @@ function hoursControlHtml(privilegio, horas, nombre) {
   }
 
   if (privilegio === 'Auxiliar' || privilegio === 'Regular') {
-    const safe = String(horas || '').trim();
-    const value = /^\d+$/.test(safe) ? safe : '';
-    return `<input class="field-input field-hours field-enabled" type="text" inputmode="numeric" pattern="[0-9]*" value="${escapeHtml(value)}" placeholder="0" aria-label="${label}" />`;
+    const value = normalizeIntegerField(horas);
+    const display = /^\d+$/.test(value) ? value : '';
+    return `<input class="field-input field-hours field-enabled" type="text" inputmode="numeric" pattern="[0-9]*" value="${escapeHtml(display)}" placeholder="0" aria-label="${label}" />`;
   }
 
   return `<input class="field-input field-hours field-disabled" type="text" value="" placeholder="—" aria-label="${label}" disabled />`;
@@ -183,7 +200,7 @@ function renderRow(person) {
   const hoursDisabled = isHoursDisabled(privilegio);
   const studiesDisabled = fieldsLocked;
   const commentsDisabled = fieldsLocked;
-  const estudiosValue = fieldsLocked ? '' : person.estudios;
+  const estudiosValue = fieldsLocked ? '' : normalizeIntegerField(person.estudios);
   const comentariosValue = fieldsLocked ? '' : person.comentarios;
 
   return `
@@ -255,11 +272,18 @@ function readRowPerson(row) {
   const privilegio = row.querySelector('.field-privilege')?.value ?? '';
   const hoursDisabled = isHoursDisabled(privilegio);
   const fieldsLocked = isReportFieldsLocked(privilegio);
+  const rawHours = hoursDisabled ? '' : readHoursValue(row);
+  const horas =
+    privilegio === 'Auxiliar' || privilegio === 'Regular'
+      ? normalizeIntegerField(rawHours)
+      : rawHours;
   return {
     id: row.getAttribute('data-id') || '',
     privilegio,
-    horas: hoursDisabled ? '' : readHoursValue(row),
-    estudios: fieldsLocked ? '' : row.querySelector('.field-studies')?.value ?? '',
+    horas: hoursDisabled ? '' : horas,
+    estudios: fieldsLocked
+      ? ''
+      : normalizeIntegerField(row.querySelector('.field-studies')?.value ?? ''),
     comentarios: fieldsLocked ? '' : row.querySelector('.field-comments')?.value ?? '',
   };
 }
@@ -277,7 +301,8 @@ function sanitizeIntegerInput(event) {
     if (privilegio !== 'Auxiliar' && privilegio !== 'Regular') return;
   }
 
-  const cleaned = input.value.replace(/\D/g, '');
+  const cleanedSource = normalizeIntegerField(input.value);
+  const cleaned = /^\d*$/.test(cleanedSource) ? cleanedSource : input.value.replace(/\D/g, '');
   if (cleaned !== input.value) input.value = cleaned;
 }
 
@@ -661,13 +686,19 @@ async function loadGroup(grupo) {
   root.innerHTML = renderTable(people);
 
   people.forEach((person) => {
+    const privilegio = person.privilegio || '';
+    const rawHours = person.horas || '';
+    const horas =
+      privilegio === 'Auxiliar' || privilegio === 'Regular'
+        ? normalizeIntegerField(rawHours)
+        : rawHours;
     lastSavedById.set(
       String(person.id),
       personSnapshot({
         id: person.id,
-        privilegio: person.privilegio || '',
-        horas: person.horas || '',
-        estudios: person.estudios || '',
+        privilegio,
+        horas,
+        estudios: normalizeIntegerField(person.estudios || ''),
         comentarios: person.comentarios || '',
       }),
     );
