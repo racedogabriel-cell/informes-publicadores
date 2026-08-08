@@ -201,10 +201,10 @@ function renderRow(person) {
         ${hoursControlHtml(privilegio, person.horas, nombre)}
       </td>
       <td class="col-studies" data-label="Estudios">
-        <input class="field-input field-studies ${studiesDisabled ? 'field-disabled' : 'field-enabled'}" type="text" inputmode="numeric" value="${escapeHtml(estudiosValue)}" placeholder="${studiesDisabled ? '—' : ''}" aria-label="Estudios de ${escapeHtml(nombre)}"${studiesDisabled ? ' disabled' : ''} />
+        <input class="field-input field-studies ${studiesDisabled ? 'field-disabled' : 'field-enabled'}" type="text" inputmode="numeric" value="${escapeHtml(estudiosValue)}" placeholder="${studiesDisabled ? '—' : 'Est.'}" aria-label="Estudios de ${escapeHtml(nombre)}"${studiesDisabled ? ' disabled' : ''} />
       </td>
       <td class="col-comments" data-label="Comentarios">
-        <input class="field-input field-comments ${commentsDisabled ? 'field-disabled' : 'field-enabled'}" type="text" value="${escapeHtml(comentariosValue)}" placeholder="${commentsDisabled ? 'Elegí privilegio' : ''}" aria-label="Comentarios de ${escapeHtml(nombre)}"${commentsDisabled ? ' disabled' : ''} />
+        <input class="field-input field-comments ${commentsDisabled ? 'field-disabled' : 'field-enabled'}" type="text" value="${escapeHtml(comentariosValue)}" placeholder="${commentsDisabled ? '—' : '+ Comentario'}" aria-label="Comentarios de ${escapeHtml(nombre)}"${commentsDisabled ? ' disabled' : ''} />
       </td>
     </tr>
   `;
@@ -386,8 +386,8 @@ function applyRowMode(row) {
   studies.classList.toggle('field-enabled', !fieldsLocked);
   comments.classList.toggle('field-disabled', fieldsLocked);
   comments.classList.toggle('field-enabled', !fieldsLocked);
-  studies.placeholder = fieldsLocked ? '—' : '';
-  comments.placeholder = fieldsLocked ? 'Elegí privilegio' : '';
+  studies.placeholder = fieldsLocked ? '—' : 'Est.';
+  comments.placeholder = fieldsLocked ? '—' : '+ Comentario';
 
   if (fieldsLocked) {
     studies.value = '';

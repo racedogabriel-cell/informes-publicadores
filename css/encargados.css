@@ -1,4 +1,4 @@
-/* Portal Encargados — auto-save, completitud, privilegios, responsive. */
+﻿/* Portal Encargados â€” auto-save, completitud, privilegios, responsive. */
 
 :root {
   --priv-publicador: #e8f4fa;
@@ -358,7 +358,7 @@
   text-align: left;
 }
 
-/* Completitud: solo punto (gris / ámbar / verde) */
+/* Completitud: solo punto (gris / Ã¡mbar / verde) */
 .completeness-dot {
   display: inline-block;
   width: 8px;
@@ -510,7 +510,8 @@
   }
 }
 
-/* Celular: tarjetas compactas (~50% menos altura; no planilla) */
+
+/* Celular: ● ID Nombre / Privilegio|Horas|Est. / Comentarios vacío compacto */
 @media (max-width: 700px) {
   .encargados-toolbar {
     width: 100%;
@@ -523,8 +524,8 @@
   }
 
   .encargados-progress {
-    padding: 6px 8px;
-    gap: 6px 12px;
+    padding: 5px 8px;
+    gap: 5px 10px;
   }
 
   .progress-stat {
@@ -533,27 +534,27 @@
   }
 
   .progress-stat strong {
-    font-size: 0.9rem;
+    font-size: 0.88rem;
   }
 
   .progress-stat-label {
-    font-size: 0.68rem;
+    font-size: 0.66rem;
   }
 
   .progress-track {
     max-width: none;
     width: 100%;
     flex-basis: 100%;
-    height: 5px;
+    height: 4px;
   }
 
   .encargados-main {
-    padding: 6px;
+    padding: 4px 5px 6px;
   }
 
   .encargados-table {
     table-layout: auto;
-    font-size: 0.88rem;
+    font-size: 0.86rem;
   }
 
   .encargados-table thead {
@@ -561,21 +562,24 @@
   }
 
   .encargados-table-scroll {
-    padding-bottom: 4px;
+    padding-bottom: 2px;
   }
 
   .encargados-table tbody tr {
     display: grid;
-    grid-template-columns: auto 1fr 1fr;
+    grid-template-columns:
+      auto
+      minmax(0, 1.45fr)
+      minmax(3.1rem, 0.7fr)
+      minmax(2.6rem, 0.55fr);
     grid-template-areas:
-      'id name name'
-      'priv priv priv'
-      'hours hours studies'
-      'comments comments comments';
-    column-gap: 8px;
-    row-gap: 5px;
-    margin: 5px 6px;
-    padding: 7px 8px;
+      'id name name name'
+      'priv priv hours studies'
+      'comments comments comments comments';
+    column-gap: 5px;
+    row-gap: 4px;
+    margin: 4px 5px;
+    padding: 5px 6px;
     border: 1px solid var(--line);
     border-radius: 8px;
     background: #fff;
@@ -587,9 +591,7 @@
   }
 
   .encargados-table tbody td {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
+    display: block;
     padding: 0;
     border: 0;
     background: transparent !important;
@@ -599,58 +601,50 @@
   }
 
   .encargados-table tbody td::before {
-    content: attr(data-label);
-    font-size: 0.58rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    color: var(--muted);
-    line-height: 1.1;
+    display: none;
   }
 
   .encargados-table tbody td.col-id {
     grid-area: id;
+    display: flex;
     flex-direction: row;
     align-items: center;
-    gap: 5px;
+    gap: 4px;
     align-self: center;
-  }
-
-  .encargados-table tbody td.col-id::before,
-  .encargados-table tbody td.col-name::before {
-    display: none;
-  }
-
-  .encargados-table tbody td.col-name {
-    grid-area: name;
-    justify-content: center;
-    align-self: center;
-    min-width: 0;
-  }
-
-  .encargados-table tbody td.col-name .person-name,
-  .encargados-table .person-name {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    font-size: 0.92rem;
-    font-weight: 700;
-    line-height: 1.2;
-  }
-
-  .encargados-table tbody td.col-id .id-value {
-    font-size: 0.78rem;
-    font-weight: 650;
   }
 
   .encargados-table tbody td.col-id .completeness-dot {
     width: 7px;
     height: 7px;
     margin-right: 0;
+    flex-shrink: 0;
+  }
+
+  .encargados-table tbody td.col-id .id-value {
+    font-size: 0.76rem;
+    font-weight: 650;
+  }
+
+  .encargados-table tbody td.col-name {
+    grid-area: name;
+    align-self: center;
+    min-width: 0;
+  }
+
+  .encargados-table tbody td.col-name .person-name,
+  .encargados-table .person-name {
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.9rem;
+    font-weight: 700;
+    line-height: 1.15;
   }
 
   .encargados-table tbody td.col-privilege {
     grid-area: priv;
+    min-width: 0;
   }
 
   .encargados-table tbody td.col-hours {
@@ -666,23 +660,53 @@
   }
 
   .encargados-table .field-input {
-    min-height: 36px;
-    padding: 5px 8px;
-    font-size: 0.88rem;
+    width: 100%;
+    min-height: 34px;
+    padding: 4px 6px;
+    font-size: 0.84rem;
     border-radius: 6px;
-    line-height: 1.15;
+    line-height: 1.1;
   }
 
   .encargados-table select.field-privilege {
-    min-height: 36px;
-    padding-top: 5px;
-    padding-bottom: 5px;
+    min-height: 34px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+    padding-right: 18px;
+    font-size: 0.78rem;
   }
 
-  .encargados-table .field-comments {
+  .encargados-table .field-hours,
+  .encargados-table .field-studies {
+    text-align: center;
+    padding-left: 2px;
+    padding-right: 2px;
+    font-size: 0.82rem;
+  }
+
+  .encargados-table .field-comments:placeholder-shown {
+    min-height: 26px;
+    padding: 2px 8px;
+    font-size: 0.76rem;
+    font-style: italic;
+    color: #7d8a83 !important;
+    border-style: dashed !important;
+    background: #f7f9f8 !important;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
-}
 
+  .encargados-table .field-comments:placeholder-shown.field-disabled,
+  .encargados-table .field-comments:placeholder-shown:disabled {
+    opacity: 0.7;
+  }
+
+  .encargados-table .field-comments:not(:placeholder-shown) {
+    min-height: 34px;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+    font-style: normal;
+  }
+}
