@@ -28,6 +28,9 @@ let lastFailedSave = null;
 /** Contador de saves en vuelo (para indicador global). */
 let activeSaveCount = 0;
 
+/** Debounce de auto-save disparado por `input` (por persona). */
+const inputSaveTimers = new Map();
+
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>'"]/g, (char) => ({
     '&': '&amp;',
@@ -493,6 +496,35 @@ function requestSaveFromRow(row, { force = false } = {}) {
   enqueuePersonSave(persona, { force });
 }
 
+function clearInputSaveTimer(personId) {
+  const id = String(personId || '');
+  const timer = inputSaveTimers.get(id);
+  if (timer) {
+    clearTimeout(timer);
+    inputSaveTimers.delete(id);
+  }
+}
+
+/** Guarda inmediato (cancela debounce de input pendiente). */
+function requestSaveFromRowNow(row, { force = false } = {}) {
+  clearInputSaveTimer(row.getAttribute('data-id') || '');
+  requestSaveFromRow(row, { force });
+}
+
+/** Guarda tras pausa de tipeo; la cola + lastSavedById siguen dedupeando. */
+function requestSaveFromRowOnInput(row) {
+  const id = String(row.getAttribute('data-id') || '');
+  if (!id) return;
+  clearInputSaveTimer(id);
+  inputSaveTimers.set(
+    id,
+    setTimeout(() => {
+      inputSaveTimers.delete(id);
+      requestSaveFromRow(row);
+    }, 350),
+  );
+}
+
 function retryLastFailedSave() {
   if (!lastFailedSave?.persona) return;
   const persona = lastFailedSave.persona;
@@ -505,17 +537,28 @@ function bindTableInteractions(root) {
     const privilege = row.querySelector('.field-privilege');
     privilege?.addEventListener('change', () => {
       applyRowMode(row);
-      requestSaveFromRow(row);
+      requestSaveFromRowNow(row);
     });
   });
 
   root.addEventListener('input', (event) => {
     sanitizeIntegerInput(event);
-    const row = event.target instanceof Element ? event.target.closest('tr') : null;
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const row = target.closest('tr');
     if (!row || !root.contains(row)) return;
-    if (event.target instanceof Element && event.target.classList.contains('field-privilege')) return;
+    if (target.classList.contains('field-privilege')) return;
     refreshRowVisuals(row);
     refreshProgressSummary();
+    // INPUT de texto: change/blur solo al salir del campo. Guardar en input
+    // para que Horas/Estudios/Comentarios no queden solo en el DOM.
+    if (
+      target.classList.contains('field-hours') ||
+      target.classList.contains('field-studies') ||
+      target.classList.contains('field-comments')
+    ) {
+      requestSaveFromRowOnInput(row);
+    }
   });
 
   root.addEventListener(
@@ -533,22 +576,29 @@ function bindTableInteractions(root) {
       }
       const row = target.closest('tr');
       if (!row || !root.contains(row)) return;
-      requestSaveFromRow(row);
+      requestSaveFromRowNow(row);
     },
     true,
   );
 
-  // Horas: SELECT (Publicador) e INPUT (Auxiliar/Regular) guardan en change.
-  // blur sigue como respaldo; lastSavedById evita POST duplicado si el snapshot no cambió.
+  // SELECT (Horas Publicador) guarda al instante en change.
+  // INPUT: change suele llegar con el blur; se mantiene + blur/input como respaldo.
+  // lastSavedById evita POST duplicado si el snapshot no cambió.
   root.addEventListener('change', (event) => {
     const target = event.target;
     if (!(target instanceof Element)) return;
-    if (!target.classList.contains('field-hours')) return;
+    if (
+      !target.classList.contains('field-hours') &&
+      !target.classList.contains('field-studies') &&
+      !target.classList.contains('field-comments')
+    ) {
+      return;
+    }
     const row = target.closest('tr');
     if (!row || !root.contains(row)) return;
     refreshRowVisuals(row);
     refreshProgressSummary();
-    requestSaveFromRow(row);
+    requestSaveFromRowNow(row);
   });
 }
 
