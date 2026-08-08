@@ -1,4 +1,26 @@
-/* Portal Encargados — UI compacta tipo app, reutiliza variables del proyecto. */
+/* Portal Encargados — UI compacta notebook/PC. Sprint UX: progreso, estados, privilegios. */
+
+:root {
+  --priv-publicador: #e8f4fa;
+  --priv-publicador-dot: #6ba8c9;
+  --priv-auxiliar: #f7f1e3;
+  --priv-auxiliar-dot: #c4a574;
+  --priv-regular: #e7f3ec;
+  --priv-regular-dot: #5a9e7a;
+  --priv-inactivo: #f0ecf6;
+  --priv-inactivo-dot: #9a8bb8;
+  --priv-none: #f3f6f4;
+  --priv-none-dot: #b0bbb4;
+  --row-empty: #9aa5a0;
+  --row-editing: #d69e2e;
+  --row-complete: #2f9e6b;
+  --row-error: var(--danger);
+  --row-saved: #1f7a5a;
+  --field-enabled-bg: #fff;
+  --field-enabled-border: #d7e3dc;
+  --field-disabled-bg: #eef1ef;
+  --field-disabled-border: #c5cec8;
+}
 
 .encargados-body {
   background: var(--canvas);
@@ -46,10 +68,6 @@
   margin: 0;
   font-size: 0.95rem;
   line-height: 1.1;
-}
-
-.encargados-brand .eyebrow {
-  display: none;
 }
 
 .encargados-toolbar {
@@ -124,11 +142,69 @@
   height: 100%;
   min-height: 0;
   display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 12px;
   box-shadow: var(--shadow);
   overflow: hidden;
+}
+
+/* —— Progreso del grupo —— */
+.encargados-progress {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+  background: #f7faf8;
+}
+
+.progress-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  align-items: baseline;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.progress-stat strong {
+  color: var(--ink);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.progress-stat.is-complete-stat strong {
+  color: var(--row-complete);
+}
+
+.progress-stat.is-pending-stat strong {
+  color: #b7791f;
+}
+
+.progress-track {
+  flex: 1 1 160px;
+  min-width: 120px;
+  max-width: 280px;
+  height: 6px;
+  border-radius: 999px;
+  background: #e2eae5;
+  overflow: hidden;
+}
+
+.progress-track i {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: var(--row-complete);
+  transition: width 0.25s ease;
+}
+
+.encargados-progress[data-complete='true'] .progress-track i {
+  background: #1f7a5a;
 }
 
 .encargados-table-scroll {
@@ -167,9 +243,10 @@
 }
 
 .encargados-table tbody td {
-  padding: 2px 5px;
+  padding: 3px 5px;
   border-bottom: 1px solid #edf2ef;
   vertical-align: middle;
+  background: #fff;
 }
 
 .encargados-table tbody tr:nth-child(even) td {
@@ -184,42 +261,76 @@
   border-bottom: 0;
 }
 
-/* Hooks visuales para estados futuros (aún no aplicados por lógica de negocio). */
-.encargados-table tbody tr.is-complete td:first-child {
-  box-shadow: inset 3px 0 0 #2f9e6b;
+/* Indicador de estado de fila (barra izquierda) — no colorea la fila entera */
+.encargados-table tbody tr td.col-id {
+  box-shadow: inset 3px 0 0 transparent;
+  position: relative;
 }
 
-.encargados-table tbody tr.is-pending td:first-child {
-  box-shadow: inset 3px 0 0 #d69e2e;
+.encargados-table tbody tr.is-empty td.col-id {
+  box-shadow: inset 3px 0 0 var(--row-empty);
 }
 
-.encargados-table tbody tr.is-error td:first-child {
-  box-shadow: inset 3px 0 0 var(--danger);
+.encargados-table tbody tr.is-editing td.col-id {
+  box-shadow: inset 3px 0 0 var(--row-editing);
+}
+
+.encargados-table tbody tr.is-complete td.col-id {
+  box-shadow: inset 3px 0 0 var(--row-complete);
+}
+
+.encargados-table tbody tr.is-error td.col-id {
+  box-shadow: inset 3px 0 0 var(--row-error);
+}
+
+.encargados-table tbody tr.is-saved td.col-id {
+  box-shadow: inset 3px 0 0 var(--row-saved);
 }
 
 .encargados-table tbody tr.is-error td {
   background: #fff5f4;
 }
 
+.encargados-table tbody tr.is-saved td {
+  background: #f1faf5;
+}
+
+.encargados-table tbody tr.is-error:hover td,
+.encargados-table tbody tr.is-saved:hover td {
+  background: inherit;
+}
+
+.encargados-table tbody tr.is-error:hover td {
+  background: #ffefed;
+}
+
+.encargados-table tbody tr.is-saved:hover td {
+  background: #e8f6ef;
+}
+
 .col-id {
-  width: 32px;
-  text-align: center;
+  width: 44px;
+  text-align: left;
+}
+
+.col-id .id-value {
+  font-variant-numeric: tabular-nums;
 }
 
 .col-name {
-  width: 38%;
+  width: 36%;
 }
 
 .col-privilege {
-  width: 96px;
+  width: 108px;
 }
 
 .col-hours {
-  width: 56px;
+  width: 64px;
 }
 
 .col-studies {
-  width: 44px;
+  width: 48px;
 }
 
 .col-comments {
@@ -233,33 +344,95 @@
   text-overflow: ellipsis;
 }
 
+/* Indicador de privilegio (punto) */
+.privilege-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 5px;
+  border-radius: 50%;
+  vertical-align: middle;
+  background: var(--priv-none-dot);
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 8%);
+}
+
+.privilege-dot[data-privilege='publicador'] {
+  background: var(--priv-publicador-dot);
+}
+
+.privilege-dot[data-privilege='auxiliar'] {
+  background: var(--priv-auxiliar-dot);
+}
+
+.privilege-dot[data-privilege='regular'] {
+  background: var(--priv-regular-dot);
+}
+
+.privilege-dot[data-privilege='inactivo'] {
+  background: var(--priv-inactivo-dot);
+}
+
+.privilege-dot[data-privilege='none'] {
+  background: var(--priv-none-dot);
+}
+
+/* Campos: habilitados vs deshabilitados (contraste claro) */
 .encargados-table .field-input {
   width: 100%;
   box-sizing: border-box;
-  border: 1px solid transparent;
   border-radius: 7px;
-  padding: 3px 6px;
-  background: transparent;
+  padding: 4px 6px;
   color: var(--ink);
   font-size: 0.82rem;
   line-height: 1.15;
-  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
 }
 
-.encargados-table .field-input:hover {
-  background: #fff;
-  border-color: #d7e3dc;
+.encargados-table .field-enabled {
+  background: var(--field-enabled-bg);
+  border: 1px solid var(--field-enabled-border);
+  cursor: text;
+  opacity: 1;
 }
 
-.encargados-table .field-input:focus {
+.encargados-table select.field-enabled {
+  cursor: pointer;
+}
+
+.encargados-table .field-enabled:hover {
+  border-color: #b7cfc3;
+}
+
+.encargados-table .field-enabled:focus {
   outline: none;
   background: #fff;
   border-color: #7fbfa5;
   box-shadow: 0 0 0 3px rgb(21 94 75 / 12%);
 }
 
+.encargados-table .field-disabled,
+.encargados-table .field-input:disabled {
+  background: var(--field-disabled-bg);
+  border: 1px dashed var(--field-disabled-border);
+  color: var(--muted);
+  cursor: not-allowed;
+  opacity: 1;
+  box-shadow: none;
+}
+
+.encargados-table .field-disabled:hover,
+.encargados-table .field-input:disabled:hover {
+  background: var(--field-disabled-bg);
+  border-color: var(--field-disabled-border);
+}
+
+.encargados-table .field-disabled::placeholder,
+.encargados-table .field-input:disabled::placeholder {
+  color: #9aa59e;
+  font-style: italic;
+}
+
 .encargados-table .field-select {
-  cursor: pointer;
   padding-right: 2px;
 }
 
@@ -268,16 +441,34 @@
   text-align: center;
 }
 
-.encargados-table tr.is-row-locked {
-  background: #f3f6f4;
+/* Privilegio: tinte solo en el selector (no en toda la fila) */
+.encargados-table .field-privilege.privilege-none {
+  background: var(--priv-none);
+  border-color: #d0d8d3;
 }
 
-.encargados-table tr.is-row-locked .field-hours,
-.encargados-table tr.is-row-locked .field-studies,
-.encargados-table tr.is-row-locked .field-comments {
-  opacity: 0.55;
-  cursor: not-allowed;
-  background: #e8eee9;
+.encargados-table .field-privilege.privilege-publicador {
+  background: var(--priv-publicador);
+  border-color: #c5dce8;
+}
+
+.encargados-table .field-privilege.privilege-auxiliar {
+  background: var(--priv-auxiliar);
+  border-color: #e2d4b8;
+}
+
+.encargados-table .field-privilege.privilege-regular {
+  background: var(--priv-regular);
+  border-color: #c5ddd0;
+}
+
+.encargados-table .field-privilege.privilege-inactivo {
+  background: var(--priv-inactivo);
+  border-color: #d4cce3;
+}
+
+.encargados-table .field-privilege:focus {
+  box-shadow: 0 0 0 3px rgb(21 94 75 / 12%);
 }
 
 @media (max-width: 900px) {
@@ -290,11 +481,11 @@
   }
 
   .col-name {
-    width: 42%;
+    width: 40%;
   }
 
   .col-privilege {
-    width: 90px;
+    width: 100px;
   }
 }
 
