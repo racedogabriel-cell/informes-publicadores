@@ -510,7 +510,7 @@
   }
 }
 
-/* Celular: tarjetas compactas (no tabla desktop comprimida) */
+/* Celular: tarjetas compactas (~50% menos altura; no planilla) */
 @media (max-width: 700px) {
   .encargados-toolbar {
     width: 100%;
@@ -523,47 +523,65 @@
   }
 
   .encargados-progress {
-    padding: 8px 10px;
+    padding: 6px 8px;
+    gap: 6px 12px;
   }
 
   .progress-stat {
     min-width: 0;
+    gap: 4px;
   }
 
   .progress-stat strong {
-    font-size: 0.95rem;
+    font-size: 0.9rem;
+  }
+
+  .progress-stat-label {
+    font-size: 0.68rem;
   }
 
   .progress-track {
     max-width: none;
     width: 100%;
     flex-basis: 100%;
+    height: 5px;
+  }
+
+  .encargados-main {
+    padding: 6px;
   }
 
   .encargados-table {
     table-layout: auto;
-    font-size: 0.9rem;
+    font-size: 0.88rem;
   }
 
   .encargados-table thead {
     display: none;
   }
 
+  .encargados-table-scroll {
+    padding-bottom: 4px;
+  }
+
   .encargados-table tbody tr {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-    margin: 8px;
-    padding: 10px;
+    grid-template-columns: auto 1fr 1fr;
+    grid-template-areas:
+      'id name name'
+      'priv priv priv'
+      'hours hours studies'
+      'comments comments comments';
+    column-gap: 8px;
+    row-gap: 5px;
+    margin: 5px 6px;
+    padding: 7px 8px;
     border: 1px solid var(--line);
-    border-radius: 10px;
+    border-radius: 8px;
     background: #fff;
   }
 
-  .encargados-table tbody tr:nth-child(even) {
-    background: #fff;
-  }
-
+  .encargados-table tbody tr:nth-child(even),
   .encargados-table tbody tr:hover {
     background: #fff;
   }
@@ -571,57 +589,100 @@
   .encargados-table tbody td {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 2px;
     padding: 0;
     border: 0;
     background: transparent !important;
     width: auto !important;
     text-align: left !important;
+    min-width: 0;
   }
 
   .encargados-table tbody td::before {
     content: attr(data-label);
-    font-size: 0.64rem;
+    font-size: 0.58rem;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.03em;
     color: var(--muted);
+    line-height: 1.1;
   }
 
   .encargados-table tbody td.col-id {
-    grid-column: 1 / -1;
+    grid-area: id;
     flex-direction: row;
     align-items: center;
-    gap: 8px;
+    gap: 5px;
+    align-self: center;
   }
 
-  .encargados-table tbody td.col-id::before {
+  .encargados-table tbody td.col-id::before,
+  .encargados-table tbody td.col-name::before {
     display: none;
   }
 
   .encargados-table tbody td.col-name {
-    grid-column: 1 / -1;
+    grid-area: name;
+    justify-content: center;
+    align-self: center;
+    min-width: 0;
   }
 
   .encargados-table tbody td.col-name .person-name,
   .encargados-table .person-name {
-    white-space: normal;
-    overflow: visible;
-    text-overflow: unset;
-    font-size: 1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.92rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .encargados-table tbody td.col-id .id-value {
+    font-size: 0.78rem;
+    font-weight: 650;
+  }
+
+  .encargados-table tbody td.col-id .completeness-dot {
+    width: 7px;
+    height: 7px;
+    margin-right: 0;
   }
 
   .encargados-table tbody td.col-privilege {
-    grid-column: 1 / -1;
+    grid-area: priv;
+  }
+
+  .encargados-table tbody td.col-hours {
+    grid-area: hours;
+  }
+
+  .encargados-table tbody td.col-studies {
+    grid-area: studies;
   }
 
   .encargados-table tbody td.col-comments {
-    grid-column: 1 / -1;
+    grid-area: comments;
   }
 
   .encargados-table .field-input {
-    min-height: 40px;
-    padding: 8px 10px;
-    font-size: 0.95rem;
+    min-height: 36px;
+    padding: 5px 8px;
+    font-size: 0.88rem;
+    border-radius: 6px;
+    line-height: 1.15;
+  }
+
+  .encargados-table select.field-privilege {
+    min-height: 36px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+  }
+
+  .encargados-table .field-comments {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 }
+
