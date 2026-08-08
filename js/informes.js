@@ -3,9 +3,9 @@ import { calendarPeriodOptions, isEstadoAbierto, periodKeyToLabel } from './peri
 
 /**
  * Módulo: Informes
- * Objetivo: vista ejecutiva del período vigente según Sistema
+ * Objetivo: consulta consolidada RO del período vigente (META → PROGRESO → TABLA)
  * Estado: En desarrollo
- * Sprint: Estabilización 1 — Sistema como autoridad del período
+ * Sprint: Simplificación UI — patrón progreso + listado
  */
 
 const VALID_PRIVILEGES = ['Publicador', 'Auxiliar', 'Regular', 'Inactivo'];
@@ -40,7 +40,7 @@ async function loadReports(period, onPeriodChange) {
   if (!root) return;
 
   root.innerHTML = `
-    ${renderVerdictShell(period, { loading: true })}
+    ${renderMetaHeader(period, { loading: true })}
     <p class="informes-status" role="status">Sincronizando…</p>
   `;
 
@@ -78,47 +78,35 @@ async function loadReports(period, onPeriodChange) {
     );
     const generatedAt = formatGeneratedAt(data.generatedAt);
     const groupStatuses = buildGroupStatuses(groups);
-    const monthComplete = isMonthComplete(groupStatuses);
     const monthLabel = viewLabel;
-    const systemNote = systemKey
-      ? `Sistema: ${viewLabel} (${systemOpen ? 'ABIERTO' : 'CERRADO'})`
-      : 'Sistema sin PeriodoActivo';
+    const systemEstado = systemKey ? (systemOpen ? 'ABIERTO' : 'CERRADO') : null;
 
     if (!reports.length) {
       root.innerHTML = `
-        ${renderVerdictShell(viewKey, {
+        ${renderMetaHeader(viewKey, {
           monthLabel,
-          empty: true,
           periods,
-          systemNote,
+          systemEstado,
+          generatedAt,
         })}
-        <article class="panel card informes-empty">
-          <p>No hay informes para ${escapeHtml(monthLabel)}.</p>
-          <p class="muted">${escapeHtml(systemNote)}.</p>
-          <p class="muted">Si el período está abierto, verificá que las hojas Grupo 1/2 tengan filas.</p>
-        </article>
-        ${renderSyncBlock(generatedAt)}
+        <p class="informes-empty muted">No hay informes para ${escapeHtml(monthLabel)}.</p>
       `;
       return;
     }
 
-    const pendingReports = reports.filter((report) => !isReportComplete(report));
     root.innerHTML = `
-      ${renderVerdictShell(viewKey, {
+      ${renderMetaHeader(viewKey, {
         monthLabel,
-        monthComplete,
-        pendingCount: pendingReports.length,
         periods,
-        systemNote,
+        systemEstado,
+        generatedAt,
       })}
-      ${renderPendingBlock(pendingReports, monthComplete)}
-      ${renderGroupStatusBlock(groupStatuses)}
-      ${renderSyncBlock(generatedAt)}
+      ${renderProgressBlock(reports, groupStatuses)}
       ${renderDetailTable(reports)}
     `;
   } catch (error) {
     root.innerHTML = `
-      ${renderVerdictShell(period, { error: true })}
+      ${renderMetaHeader(period, { error: true })}
       <article class="panel card">
         <p class="status-missing">No se pudieron obtener los informes.</p>
         <p class="muted">${escapeHtml(error.message || 'Error desconocido')}</p>
@@ -133,137 +121,135 @@ function ensurePeriodOption(periods, key, label) {
   return [...periods, { key, label }];
 }
 
-function renderVerdictShell(period, state = {}) {
+function renderMetaHeader(period, state = {}) {
   const periods = state.periods || availablePeriods();
-  const select = `
-    <div class="month-picker month-picker-inline">
-      <label for="report-period">Mes:</label>
-      <select id="report-period" aria-label="Mes">
-        ${periods
-          .map((item) => `<option value="${item.key}" ${item.key === period ? 'selected' : ''}>${item.label}</option>`)
-          .join('')}
-      </select>
-    </div>
-    ${state.systemNote ? `<p class="muted informes-system-note">${escapeHtml(state.systemNote)}</p>` : ''}
-  `;
+  const monthLabel = state.monthLabel || periodKeyToLabel(period);
 
-  let verdict = '';
+  const periodControl = state.loading || state.error
+    ? `<span class="informes-meta-chip"><span class="informes-meta-label">Período</span><strong>${escapeHtml(monthLabel)}</strong></span>`
+    : `
+      <label class="informes-meta-chip informes-meta-period" for="report-period">
+        <span class="informes-meta-label">Período</span>
+        <select id="report-period" aria-label="Mes">
+          ${periods
+            .map((item) => `<option value="${item.key}" ${item.key === period ? 'selected' : ''}>${item.label}</option>`)
+            .join('')}
+        </select>
+      </label>
+    `;
+
+  let estadoChip = '';
   if (state.loading) {
-    verdict = `<p class="month-verdict-label muted">Cargando estado del mes…</p>`;
+    estadoChip = `<span class="informes-meta-chip"><span class="informes-meta-label">Sistema</span><strong class="muted">…</strong></span>`;
   } else if (state.error) {
-    verdict = `<p class="month-verdict-label status-missing">Sin datos</p>`;
-  } else if (state.empty) {
-    verdict = `<p class="month-verdict-label muted">Sin informes para este mes</p>`;
-  } else if (state.monthComplete) {
-    verdict = `
-      <p class="month-verdict-label is-complete">✔ Mes completo</p>
+    estadoChip = `<span class="informes-meta-chip"><span class="informes-meta-label">Sistema</span><strong class="status-missing">Sin datos</strong></span>`;
+  } else if (state.systemEstado) {
+    const open = state.systemEstado === 'ABIERTO';
+    estadoChip = `
+      <span class="informes-meta-chip">
+        <span class="informes-meta-label">Sistema</span>
+        <strong class="informes-estado ${open ? 'is-open' : 'is-closed'}">${escapeHtml(state.systemEstado)}</strong>
+      </span>
     `;
   } else {
-    verdict = `
-      <p class="month-verdict-label is-incomplete">⚠ Mes incompleto</p>
-      <p class="month-verdict-pending">Pendientes: ${state.pendingCount}</p>
+    estadoChip = `
+      <span class="informes-meta-chip">
+        <span class="informes-meta-label">Sistema</span>
+        <strong class="muted">Sin PeriodoActivo</strong>
+      </span>
     `;
   }
+
+  const syncMeta = state.generatedAt
+    ? `<span class="informes-sync-meta muted">Última sincronización: ${escapeHtml(state.generatedAt)}</span>`
+    : state.loading
+      ? `<span class="informes-sync-meta muted">Sincronizando…</span>`
+      : '';
+
+  const syncButton =
+    state.loading || state.error
+      ? ''
+      : `<button class="button" id="refresh-reports" type="button">Sincronizar</button>`;
 
   return `
-    <section class="month-verdict-block ${state.monthComplete ? 'is-complete' : ''} ${state.monthComplete === false ? 'is-incomplete' : ''}">
-      ${select}
-      <div class="month-verdict-body">${verdict}</div>
-    </section>
-  `;
-}
-
-function renderPendingBlock(pendingReports, monthComplete) {
-  if (monthComplete || pendingReports.length === 0) {
-    return `
-      <section class="informes-pending-block card">
-        <p class="informes-pending-empty">No hay personas pendientes.</p>
-      </section>
-    `;
-  }
-
-  const byGroup = new Map();
-  for (const report of pendingReports) {
-    const key = report.grupo || 'Sin grupo';
-    if (!byGroup.has(key)) byGroup.set(key, []);
-    byGroup.get(key).push(report);
-  }
-
-  const groupsHtml = [...byGroup.entries()]
-    .map(([grupo, people]) => {
-      const names = people
-        .map((person) => `<li class="person-name">${escapeHtml(displayText(person.nombre))}</li>`)
-        .join('');
-      return `
-        <div class="pending-group">
-          <p class="pending-group-name">${escapeHtml(grupo)}</p>
-          <ul class="pending-list">${names}</ul>
+    <header class="informes-meta">
+      <div class="informes-meta-main">
+        <p class="informes-meta-title">Informes</p>
+        <div class="informes-meta-chips" aria-label="Contexto del período">
+          ${periodControl}
+          ${estadoChip}
         </div>
-      `;
-    })
-    .join('');
-
-  return `<section class="informes-pending-block card">${groupsHtml}</section>`;
-}
-
-function renderGroupStatusBlock(groupStatuses) {
-  return `
-    <section class="informes-groups-block">
-      ${groupStatuses
-        .map((group) => {
-          const icon = group.complete ? '✔' : '⚠';
-          return `
-            <div class="group-status-row">
-              <span class="group-status-name">${escapeHtml(group.grupo)}</span>
-              <span class="group-status-metric">${icon} ${group.completed}/${group.total}</span>
-            </div>
-          `;
-        })
-        .join('')}
-    </section>
+      </div>
+      <div class="informes-meta-actions">
+        ${syncMeta}
+        ${syncButton}
+      </div>
+    </header>
   `;
 }
 
-function renderSyncBlock(generatedAt) {
+function renderProgressBlock(reports, groupStatuses) {
+  const total = reports.length;
+  const completed = reports.filter((report) => isReportComplete(report)).length;
+  const pending = Math.max(total - completed, 0);
+  const pct = total === 0 ? 0 : Math.round((completed / total) * 100);
+  const monthComplete = isMonthComplete(groupStatuses);
+
+  const groupsLine = groupStatuses
+    .map((group) => `${escapeHtml(group.grupo)}: ${group.completed}/${group.total}`)
+    .join(' · ');
+
   return `
-    <section class="informes-sync-block">
-      <p class="informes-sync-meta muted">Última sincronización: ${escapeHtml(generatedAt)}</p>
-      <button class="button" id="refresh-reports" type="button">Sincronizar</button>
+    <section class="informes-progress" data-complete="${monthComplete ? 'true' : 'false'}" aria-live="polite">
+      <div class="informes-progress-row">
+        <div class="progress-stats">
+          <span class="progress-stat"><strong>${total}</strong><span class="progress-stat-label">personas</span></span>
+          <span class="progress-stat is-complete-stat"><strong>${completed}</strong><span class="progress-stat-label">completas</span></span>
+          <span class="progress-stat is-pending-stat"><strong>${pending}</strong><span class="progress-stat-label">pendientes</span></span>
+          <span class="progress-stat"><strong>${pct}%</strong><span class="progress-stat-label">avance</span></span>
+        </div>
+        <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}" aria-label="Progreso del mes: ${completed} de ${total} completas">
+          <i style="width:${pct}%"></i>
+        </div>
+      </div>
+      ${groupsLine ? `<p class="informes-groups-line muted">${groupsLine}</p>` : ''}
     </section>
   `;
 }
 
 function renderDetailTable(reports) {
   return `
-    <article class="card table-wrap report-list">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Nombre</th>
-            <th>Grupo</th>
-            <th>Privilegio</th>
-            <th>Horas</th>
-            <th>Estudios</th>
-            <th>Comentarios</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${reports
-            .map((report) => {
-              const pending = !isReportComplete(report);
-              return `
+    <article class="informes-board" aria-label="Informes consolidados">
+      <div class="informes-table-scroll">
+        <table class="data-table informes-table">
+          <thead>
+            <tr>
+              <th class="col-name">Nombre</th>
+              <th class="col-group">Grupo</th>
+              <th class="col-privilege">Privilegio</th>
+              <th class="col-hours">Horas</th>
+              <th class="col-studies">Estudios</th>
+              <th class="col-comments">Comentarios</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${reports
+              .map((report) => {
+                const pending = !isReportComplete(report);
+                return `
             <tr class="${pending ? 'is-pending-row' : ''}">
-              <td class="person-name">${escapeHtml(displayText(report.nombre))}</td>
-              <td><span class="badge">${escapeHtml(report.grupo)}</span></td>
-              <td>${escapeHtml(displayText(report.privilegio))}</td>
-              <td>${escapeHtml(displayHours(report))}</td>
-              <td>${escapeHtml(displayText(report.estudios))}</td>
-              <td>${escapeHtml(displayText(report.comentarios))}</td>
+              <td class="col-name person-name" data-label="Nombre">${escapeHtml(displayText(report.nombre))}</td>
+              <td class="col-group" data-label="Grupo"><span class="badge">${escapeHtml(report.grupo)}</span></td>
+              <td class="col-privilege" data-label="Privilegio">${escapeHtml(displayText(report.privilegio))}</td>
+              <td class="col-hours" data-label="Horas">${escapeHtml(displayHours(report))}</td>
+              <td class="col-studies" data-label="Estudios">${escapeHtml(displayText(report.estudios))}</td>
+              <td class="col-comments" data-label="Comentarios">${escapeHtml(displayText(report.comentarios))}</td>
             </tr>`;
-            })
-            .join('')}
-        </tbody>
-      </table>
+              })
+              .join('')}
+          </tbody>
+        </table>
+      </div>
     </article>
   `;
 }
