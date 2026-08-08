@@ -23,7 +23,7 @@
           </div>
         </div>
 
-        <div class="encargados-toolbar" aria-label="Contexto y acciones">
+        <div class="encargados-toolbar" aria-label="Contexto y estado">
           <div class="encargados-meta">
             <span class="encargados-meta-chip">
               <span class="encargados-meta-label">Grupo</span>
@@ -34,15 +34,16 @@
               <strong id="context-mes">—</strong>
             </span>
           </div>
-          <button class="button button-compact" id="save-group" type="button" disabled title="Disponible cuando el grupo esté cargado">
-            Guardar Grupo
-          </button>
+          <div id="save-indicator" class="save-indicator" data-state="saved" role="status" aria-live="polite">
+            <span class="save-indicator-dot" aria-hidden="true"></span>
+            <span class="save-indicator-text">Todos los cambios guardados</span>
+            <button type="button" class="save-indicator-retry" id="save-indicator-retry" hidden>Reintentar</button>
+          </div>
         </div>
-        <p id="save-feedback" class="encargados-feedback" role="status" hidden></p>
       </header>
 
       <main class="encargados-main" id="encargados-app"></main>
     </div>
-    <script type="module" src="./js/app.js?v=10"></script>
+    <script type="module" src="./js/app.js?v=11"></script>
   </body>
 </html>

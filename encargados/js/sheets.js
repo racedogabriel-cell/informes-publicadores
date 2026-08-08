@@ -3,6 +3,7 @@ export {
   getMonthlyReports,
   getSystemState,
   postSaveGroup,
+  postSavePerson,
   openPeriod,
   closePeriod,
 } from '../../js/sheets.js';

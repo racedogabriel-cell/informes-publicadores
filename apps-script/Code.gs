@@ -8,7 +8,8 @@
  *   ?action=openPeriod&periodo=YYYY-MM
  *   ?action=closePeriod
  * doPost:
- *   saveGroup (escritura real C–F por ID en período ABIERTO)
+ *   saveGroup (escritura real C–F por ID en período ABIERTO; lote)
+ *   savePerson (escritura real C–F de una sola persona; Encargados auto-save)
  */
 const SPREADSHEET_ID = '1BcZ31qor91cGlrtRSEO6XsZDFiSVtP4PCZ5F910xoBs';
 const GROUP_SHEETS = ['Grupo 1', 'Grupo 2'];
@@ -27,6 +28,7 @@ const HISTORIAL_HEADERS = [
   'FechaCierre',
 ];
 const SAVE_ACTION = 'saveGroup';
+const SAVE_PERSON_ACTION = 'savePerson';
 const DRY_RUN_MODE = 'dryRun';
 const ESTADO_ABIERTO = 'ABIERTO';
 const ESTADO_CERRADO = 'CERRADO';
@@ -620,7 +622,9 @@ function isEstadoAbierto_(raw) {
 }
 
 /**
- * Guardado real del Portal Encargados: action=saveGroup.
+ * Guardado real del Portal Encargados.
+ * - action=saveGroup  → lote (compatibilidad / rollback)
+ * - action=savePerson → una persona (auto-save)
  * Escribe solo C–F por ID en el período ABIERTO. No toca Períodos/Historial/Personas/Sistema (salvo lectura).
  */
 function doPost(event) {
@@ -637,7 +641,11 @@ function doPost(event) {
   }
 
   try {
-    return json_(saveGroup_(event));
+    var payload = parsePostPayload_(event);
+    if (payload && payload.action === SAVE_PERSON_ACTION) {
+      return json_(savePersonFromPayload_(payload));
+    }
+    return json_(saveGroupFromPayload_(payload));
   } catch (error) {
     return json_({
       ok: false,
@@ -653,21 +661,10 @@ function doPost(event) {
 }
 
 function saveGroup_(event) {
-  var payload;
-  try {
-    payload = parsePostPayload_(event);
-  } catch (error) {
-    return {
-      ok: false,
-      wroteToSheet: false,
-      action: SAVE_ACTION,
-      error: String(error.message || error),
-      message: 'No se pudo interpretar el cuerpo de la solicitud.',
-      updated: [],
-      errors: [],
-    };
-  }
+  return saveGroupFromPayload_(parsePostPayload_(event));
+}
 
+function saveGroupFromPayload_(payload) {
   var requestCheck = validateSaveGroupRequest_(payload);
   if (!requestCheck.ok) {
     return {
@@ -681,94 +678,32 @@ function saveGroup_(event) {
     };
   }
 
-  var spreadsheet = SpreadsheetApp.openById(SPREADSHEET_ID);
-  var sistema = getOrCreateSistemaSheet_(spreadsheet);
-  var state = readSistemaMap_(sistema);
-
-  if (!isEstadoAbierto_(state.EstadoPeriodo) || !String(state.PeriodoActivo || '').trim()) {
-    return {
-      ok: false,
-      wroteToSheet: false,
-      action: SAVE_ACTION,
-      error: 'No hay un período abierto.',
-      message:
-        'No se puede guardar: Sistema debe tener PeriodoActivo y EstadoPeriodo=ABIERTO. Ninguna celda fue modificada.',
-      periodo: state.PeriodoActivo || null,
-      updated: [],
-      errors: [],
-    };
+  var context = resolveSaveContext_(payload);
+  if (!context.ok) {
+    return Object.assign(
+      {
+        wroteToSheet: false,
+        action: SAVE_ACTION,
+        updated: [],
+        errors: [],
+      },
+      context,
+    );
   }
 
-  var periodoActivo = String(state.PeriodoActivo).trim();
-  var payloadPeriodo = String(payload.periodo || '').trim();
-  if (payloadPeriodo !== periodoActivo) {
-    return {
-      ok: false,
-      wroteToSheet: false,
-      action: SAVE_ACTION,
-      error: 'El período del lote no coincide con Sistema.',
-      message:
-        'El Portal Encargados envió periodo="' +
-        payloadPeriodo +
-        '" pero Sistema.PeriodoActivo="' +
-        periodoActivo +
-        '". Recargá el grupo e intentá de nuevo. Ninguna celda fue modificada.',
-      periodo: periodoActivo,
-      updated: [],
-      errors: [],
-    };
-  }
-
-  var grupo = payload.grupo;
-  var sheet = spreadsheet.getSheetByName(grupo);
-  if (!sheet) {
-    return {
-      ok: false,
-      wroteToSheet: false,
-      action: SAVE_ACTION,
-      error: 'No existe la hoja ' + grupo + '.',
-      message: 'No se encontró la hoja del grupo. Ninguna celda fue modificada.',
-      updated: [],
-      errors: [],
-    };
-  }
-
-  var idRowMap = buildIdRowMap_(sheet);
+  var idRowMap = buildIdRowMap_(context.sheet);
   var updated = [];
   var errors = [];
   var wroteAny = false;
 
   for (var i = 0; i < payload.personas.length; i++) {
-    var person = payload.personas[i];
-    var id = String(person.id).trim();
-    var business = validatePersonBusiness_(person);
-
-    if (!business.ok) {
-      errors.push({ id: id, index: i, error: business.error });
+    var result = writePersonFields_(context.sheet, idRowMap, payload.personas[i], i, context.grupo);
+    if (result.error) {
+      errors.push(result.error);
       continue;
     }
-
-    var row = idRowMap[id];
-    if (!row) {
-      errors.push({
-        id: id,
-        index: i,
-        error: 'No se encontró el ID en la hoja ' + grupo + '.',
-      });
-      continue;
-    }
-
-    // Solo C–F. Nunca A, B ni B3.
-    sheet.getRange(row, 3, 1, 4).setValues([
-      [
-        business.values.privilegio,
-        business.values.horas,
-        business.values.estudios,
-        business.values.comentarios,
-      ],
-    ]);
     wroteAny = true;
-    updated.push({ id: id, row: row });
+    updated.push(result.updated);
   }
 
   var received = payload.personas.length;
@@ -779,8 +714,8 @@ function saveGroup_(event) {
     ok: !allFailed || received === 0,
     wroteToSheet: wroteAny,
     action: SAVE_ACTION,
-    grupo: grupo,
-    periodo: state.PeriodoActivo,
+    grupo: context.grupo,
+    periodo: context.periodoActivo,
     mes: payload.mes,
     counts: {
       received: received,
@@ -799,6 +734,152 @@ function saveGroup_(event) {
           ' con error.'
         : 'Grupo guardado correctamente (' + updated.length + ' persona(s)).',
   };
+}
+
+/**
+ * Auto-save Encargados: una sola persona. No exige completitud.
+ * Reutiliza validación de negocio y escritura C–F de saveGroup.
+ */
+function savePersonFromPayload_(payload) {
+  var requestCheck = validateSavePersonRequest_(payload);
+  if (!requestCheck.ok) {
+    return {
+      ok: false,
+      wroteToSheet: false,
+      action: SAVE_PERSON_ACTION,
+      error: requestCheck.error,
+      message: requestCheck.error,
+      errors: requestCheck.errors || [],
+      updated: [],
+    };
+  }
+
+  var context = resolveSaveContext_(payload);
+  if (!context.ok) {
+    return Object.assign(
+      {
+        wroteToSheet: false,
+        action: SAVE_PERSON_ACTION,
+        updated: [],
+        errors: [],
+      },
+      context,
+    );
+  }
+
+  var idRowMap = buildIdRowMap_(context.sheet);
+  var result = writePersonFields_(context.sheet, idRowMap, payload.persona, 0, context.grupo);
+
+  if (result.error) {
+    return {
+      ok: false,
+      wroteToSheet: false,
+      action: SAVE_PERSON_ACTION,
+      grupo: context.grupo,
+      periodo: context.periodoActivo,
+      mes: payload.mes,
+      counts: { received: 1, updated: 0, rejected: 1 },
+      updated: [],
+      errors: [result.error],
+      message: result.error.error || 'No se actualizó la persona.',
+    };
+  }
+
+  return {
+    ok: true,
+    wroteToSheet: true,
+    action: SAVE_PERSON_ACTION,
+    grupo: context.grupo,
+    periodo: context.periodoActivo,
+    mes: payload.mes,
+    counts: { received: 1, updated: 1, rejected: 0 },
+    updated: [result.updated],
+    errors: [],
+    message: 'Persona guardada correctamente.',
+  };
+}
+
+function resolveSaveContext_(payload) {
+  var spreadsheet = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sistema = getOrCreateSistemaSheet_(spreadsheet);
+  var state = readSistemaMap_(sistema);
+
+  if (!isEstadoAbierto_(state.EstadoPeriodo) || !String(state.PeriodoActivo || '').trim()) {
+    return {
+      ok: false,
+      error: 'No hay un período abierto.',
+      message:
+        'No se puede guardar: Sistema debe tener PeriodoActivo y EstadoPeriodo=ABIERTO. Ninguna celda fue modificada.',
+      periodo: state.PeriodoActivo || null,
+    };
+  }
+
+  var periodoActivo = String(state.PeriodoActivo).trim();
+  var payloadPeriodo = String(payload.periodo || '').trim();
+  if (payloadPeriodo !== periodoActivo) {
+    return {
+      ok: false,
+      error: 'El período del lote no coincide con Sistema.',
+      message:
+        'El Portal Encargados envió periodo="' +
+        payloadPeriodo +
+        '" pero Sistema.PeriodoActivo="' +
+        periodoActivo +
+        '". Recargá el grupo e intentá de nuevo. Ninguna celda fue modificada.',
+      periodo: periodoActivo,
+    };
+  }
+
+  var grupo = payload.grupo;
+  var sheet = spreadsheet.getSheetByName(grupo);
+  if (!sheet) {
+    return {
+      ok: false,
+      error: 'No existe la hoja ' + grupo + '.',
+      message: 'No se encontró la hoja del grupo. Ninguna celda fue modificada.',
+    };
+  }
+
+  return {
+    ok: true,
+    spreadsheet: spreadsheet,
+    sheet: sheet,
+    grupo: grupo,
+    periodoActivo: periodoActivo,
+    state: state,
+  };
+}
+
+function writePersonFields_(sheet, idRowMap, person, index, grupo) {
+  var id = String(person.id).trim();
+  var business = validatePersonBusiness_(person);
+
+  if (!business.ok) {
+    return { error: { id: id, index: index, error: business.error } };
+  }
+
+  var row = idRowMap[id];
+  if (!row) {
+    return {
+      error: {
+        id: id,
+        index: index,
+        error: 'No se encontró el ID en la hoja ' + grupo + '.',
+      },
+    };
+  }
+
+  // Solo C–F. Nunca A, B ni B3.
+  sheet.getRange(row, 3, 1, 4).setValues([
+    [
+      business.values.privilegio,
+      business.values.horas,
+      business.values.estudios,
+      business.values.comentarios,
+    ],
+  ]);
+
+  return { updated: { id: id, row: row } };
 }
 
 function buildIdRowMap_(sheet) {
@@ -866,6 +947,17 @@ function validatePersonBusiness_(person) {
   }
 
   if (privilegio === 'Publicador') {
+    if (horas === '') {
+      return {
+        ok: true,
+        values: {
+          privilegio: 'Publicador',
+          horas: '',
+          estudios: estudios,
+          comentarios: comentarios,
+        },
+      };
+    }
     var yn = normalizeYesNoToken_(horas);
     if (!yn) {
       return {
@@ -1000,6 +1092,60 @@ function validateSaveGroupRequest_(payload) {
       ok: false,
       error: 'El lote tiene ' + errors.length + ' persona(s) con estructura inválida.',
       errors: errors,
+    };
+  }
+
+  return { ok: true, errors: [] };
+}
+
+function validateSavePersonRequest_(payload) {
+  var errors = [];
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    return { ok: false, error: 'El payload debe ser un objeto JSON.', errors: errors };
+  }
+
+  if (payload.action !== SAVE_PERSON_ACTION) {
+    return { ok: false, error: 'Acción no válida. Se espera action=savePerson.', errors: errors };
+  }
+
+  if (payload.mode === DRY_RUN_MODE) {
+    return {
+      ok: false,
+      error: 'mode=dryRun ya no está disponible. Enviá mode=save.',
+      errors: errors,
+    };
+  }
+
+  if (payload.mode != null && payload.mode !== 'save') {
+    return { ok: false, error: 'mode debe ser "save".', errors: errors };
+  }
+
+  if (GROUP_SHEETS.indexOf(payload.grupo) === -1) {
+    return { ok: false, error: 'grupo debe ser "Grupo 1" o "Grupo 2".', errors: errors };
+  }
+
+  if (typeof payload.mes !== 'string') {
+    return { ok: false, error: 'mes debe ser un string (solo control).', errors: errors };
+  }
+
+  if (typeof payload.periodo !== 'string' || !/^\d{4}-(0[1-9]|1[0-2])$/.test(String(payload.periodo).trim())) {
+    return {
+      ok: false,
+      error: 'periodo debe ser YYYY-MM y coincidir con Sistema.PeriodoActivo.',
+      errors: errors,
+    };
+  }
+
+  if (!payload.persona || typeof payload.persona !== 'object' || Array.isArray(payload.persona)) {
+    return { ok: false, error: 'persona debe ser un objeto.', errors: errors };
+  }
+
+  var personError = validatePersonStructure_(payload.persona, 0);
+  if (personError) {
+    return {
+      ok: false,
+      error: 'La persona tiene estructura inválida.',
+      errors: [personError],
     };
   }
 

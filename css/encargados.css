@@ -1,25 +1,26 @@
-/* Portal Encargados — UI compacta notebook/PC. Sprint UX: progreso, estados, privilegios. */
+/* Portal Encargados — auto-save, completitud, privilegios, responsive. */
 
 :root {
   --priv-publicador: #e8f4fa;
-  --priv-publicador-dot: #6ba8c9;
+  --priv-publicador-border: #b7d4e6;
   --priv-auxiliar: #f7f1e3;
-  --priv-auxiliar-dot: #c4a574;
+  --priv-auxiliar-border: #e0d0b0;
   --priv-regular: #e7f3ec;
-  --priv-regular-dot: #5a9e7a;
+  --priv-regular-border: #b9d9c6;
   --priv-inactivo: #f0ecf6;
-  --priv-inactivo-dot: #9a8bb8;
-  --priv-none: #f3f6f4;
-  --priv-none-dot: #b0bbb4;
-  --row-empty: #9aa5a0;
-  --row-editing: #d69e2e;
-  --row-complete: #2f9e6b;
-  --row-error: var(--danger);
-  --row-saved: #1f7a5a;
+  --priv-inactivo-border: #d2c8e4;
+  --priv-none: #f1f3f2;
+  --priv-none-border: #cfd6d2;
+  --complete-dot: #2f9e6b;
+  --editing-dot: #d69e2e;
+  --empty-dot: #a8b2ac;
   --field-enabled-bg: #fff;
-  --field-enabled-border: #d7e3dc;
-  --field-disabled-bg: #eef1ef;
-  --field-disabled-border: #c5cec8;
+  --field-enabled-border: #cfe0d7;
+  --field-disabled-bg: #ecefec;
+  --field-disabled-border: #b9c3bd;
+  --save-saved: #2f9e6b;
+  --save-saving: #c49212;
+  --save-error: #b42318;
 }
 
 .encargados-body {
@@ -43,9 +44,8 @@
   gap: 8px 14px;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 14px;
-  min-height: 0;
-  background: rgba(255, 255, 255, 0.94);
+  padding: 8px 14px;
+  background: rgba(255, 255, 255, 0.96);
   border-bottom: 1px solid var(--line);
   backdrop-filter: blur(10px);
 }
@@ -73,8 +73,9 @@
 .encargados-toolbar {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 8px 12px;
   align-items: center;
+  min-width: 0;
 }
 
 .encargados-meta {
@@ -106,31 +107,66 @@
   font-weight: 700;
 }
 
-.button-compact {
-  padding: 6px 12px;
-  border-radius: 9px;
-  font-size: 0.82rem;
-}
-
-.button:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.encargados-feedback {
-  flex: 1 0 100%;
-  margin: 0;
-  padding: 0 0 2px;
-  font-size: 0.8rem;
+/* Indicador global de guardado (compacto) */
+.save-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #f3f6f4;
+  border: 1px solid var(--line);
+  font-size: 0.74rem;
   color: var(--muted);
+  white-space: nowrap;
+  max-width: 100%;
 }
 
-.encargados-feedback[data-tone='success'] {
-  color: var(--accent, #155e4b);
+.save-indicator-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--save-saved);
 }
 
-.encargados-feedback[data-tone='error'] {
+.save-indicator[data-state='saving'] .save-indicator-dot {
+  background: var(--save-saving);
+}
+
+.save-indicator[data-state='error'] .save-indicator-dot {
+  background: var(--save-error);
+}
+
+.save-indicator[data-state='saved'] {
+  color: #2b6b4f;
+}
+
+.save-indicator[data-state='saving'] {
+  color: #8a6a12;
+}
+
+.save-indicator[data-state='error'] {
   color: #9b1c1c;
+  background: #fff5f4;
+  border-color: #f0c7c3;
+}
+
+.save-indicator-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.save-indicator-retry {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
 }
 
 .encargados-main {
@@ -150,13 +186,13 @@
   overflow: hidden;
 }
 
-/* —— Progreso del grupo —— */
 .encargados-progress {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 10px 16px;
-  padding: 8px 12px;
+  justify-content: space-between;
+  gap: 10px 18px;
+  padding: 10px 14px;
   border-bottom: 1px solid var(--line);
   background: #f7faf8;
 }
@@ -164,20 +200,33 @@
 .progress-stats {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px 14px;
+  gap: 8px 20px;
   align-items: baseline;
+}
+
+.progress-stat {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 5.5rem;
   font-size: 0.78rem;
   color: var(--muted);
 }
 
 .progress-stat strong {
   color: var(--ink);
-  font-weight: 700;
+  font-size: 1.05rem;
+  font-weight: 750;
   font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.progress-stat-label {
+  font-size: 0.74rem;
 }
 
 .progress-stat.is-complete-stat strong {
-  color: var(--row-complete);
+  color: var(--complete-dot);
 }
 
 .progress-stat.is-pending-stat strong {
@@ -185,9 +234,9 @@
 }
 
 .progress-track {
-  flex: 1 1 160px;
-  min-width: 120px;
-  max-width: 280px;
+  flex: 1 1 140px;
+  min-width: 100px;
+  max-width: 240px;
   height: 6px;
   border-radius: 999px;
   background: #e2eae5;
@@ -199,7 +248,7 @@
   height: 100%;
   width: 0;
   border-radius: inherit;
-  background: var(--row-complete);
+  background: var(--complete-dot);
   transition: width 0.25s ease;
 }
 
@@ -224,26 +273,33 @@
   border-collapse: separate;
   border-spacing: 0;
   table-layout: fixed;
-  font-size: 0.82rem;
+  font-size: 0.84rem;
 }
 
 .encargados-table thead th {
   position: sticky;
   top: 0;
   z-index: 5;
-  padding: 6px 6px;
+  padding: 8px 8px;
   background: #eef5f1;
   color: var(--muted);
-  font-size: 0.64rem;
+  font-size: 0.68rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   text-align: left;
   border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+
+.encargados-table thead th.col-hours,
+.encargados-table thead th.col-studies,
+.encargados-table thead th.col-id {
+  text-align: center;
 }
 
 .encargados-table tbody td {
-  padding: 3px 5px;
+  padding: 5px 8px;
   border-bottom: 1px solid #edf2ef;
   vertical-align: middle;
   background: #fff;
@@ -254,83 +310,40 @@
 }
 
 .encargados-table tbody tr:hover td {
-  background: #f3f8f5;
+  background: #f5f9f6;
 }
 
 .encargados-table tbody tr:last-child td {
   border-bottom: 0;
 }
 
-/* Indicador de estado de fila (barra izquierda) — no colorea la fila entera */
-.encargados-table tbody tr td.col-id {
-  box-shadow: inset 3px 0 0 transparent;
-  position: relative;
-}
-
-.encargados-table tbody tr.is-empty td.col-id {
-  box-shadow: inset 3px 0 0 var(--row-empty);
-}
-
-.encargados-table tbody tr.is-editing td.col-id {
-  box-shadow: inset 3px 0 0 var(--row-editing);
-}
-
-.encargados-table tbody tr.is-complete td.col-id {
-  box-shadow: inset 3px 0 0 var(--row-complete);
-}
-
-.encargados-table tbody tr.is-error td.col-id {
-  box-shadow: inset 3px 0 0 var(--row-error);
-}
-
-.encargados-table tbody tr.is-saved td.col-id {
-  box-shadow: inset 3px 0 0 var(--row-saved);
-}
-
-.encargados-table tbody tr.is-error td {
-  background: #fff5f4;
-}
-
-.encargados-table tbody tr.is-saved td {
-  background: #f1faf5;
-}
-
-.encargados-table tbody tr.is-error:hover td,
-.encargados-table tbody tr.is-saved:hover td {
-  background: inherit;
-}
-
-.encargados-table tbody tr.is-error:hover td {
-  background: #ffefed;
-}
-
-.encargados-table tbody tr.is-saved:hover td {
-  background: #e8f6ef;
-}
-
 .col-id {
-  width: 44px;
-  text-align: left;
+  width: 48px;
+  text-align: center;
 }
 
 .col-id .id-value {
   font-variant-numeric: tabular-nums;
+  font-size: 0.78rem;
 }
 
 .col-name {
-  width: 36%;
+  width: 34%;
+  text-align: left;
 }
 
 .col-privilege {
-  width: 108px;
+  width: 118px;
 }
 
 .col-hours {
-  width: 64px;
+  width: 72px;
+  text-align: center;
 }
 
 .col-studies {
-  width: 48px;
+  width: 56px;
+  text-align: center;
 }
 
 .col-comments {
@@ -342,55 +355,48 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-align: left;
 }
 
-/* Indicador de privilegio (punto) */
-.privilege-dot {
+/* Completitud: solo punto (gris / ámbar / verde) */
+.completeness-dot {
   display: inline-block;
   width: 8px;
   height: 8px;
   margin-right: 5px;
   border-radius: 50%;
   vertical-align: middle;
-  background: var(--priv-none-dot);
-  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 8%);
+  background: var(--empty-dot);
 }
 
-.privilege-dot[data-privilege='publicador'] {
-  background: var(--priv-publicador-dot);
+.encargados-table tbody tr.is-empty .completeness-dot {
+  background: var(--empty-dot);
 }
 
-.privilege-dot[data-privilege='auxiliar'] {
-  background: var(--priv-auxiliar-dot);
+.encargados-table tbody tr.is-editing .completeness-dot {
+  background: var(--editing-dot);
 }
 
-.privilege-dot[data-privilege='regular'] {
-  background: var(--priv-regular-dot);
+.encargados-table tbody tr.is-complete .completeness-dot {
+  background: var(--complete-dot);
 }
 
-.privilege-dot[data-privilege='inactivo'] {
-  background: var(--priv-inactivo-dot);
-}
-
-.privilege-dot[data-privilege='none'] {
-  background: var(--priv-none-dot);
-}
-
-/* Campos: habilitados vs deshabilitados (contraste claro) */
+/* Campos */
 .encargados-table .field-input {
   width: 100%;
   box-sizing: border-box;
   border-radius: 7px;
-  padding: 4px 6px;
+  padding: 6px 8px;
   color: var(--ink);
-  font-size: 0.82rem;
-  line-height: 1.15;
-  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+  font-size: 0.84rem;
+  line-height: 1.2;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
 }
 
 .encargados-table .field-enabled {
-  background: var(--field-enabled-bg);
-  border: 1px solid var(--field-enabled-border);
+  background: var(--field-enabled-bg) !important;
+  border: 1px solid var(--field-enabled-border) !important;
+  color: var(--ink);
   cursor: text;
   opacity: 1;
 }
@@ -400,30 +406,23 @@
 }
 
 .encargados-table .field-enabled:hover {
-  border-color: #b7cfc3;
+  border-color: #a9cbbb !important;
 }
 
 .encargados-table .field-enabled:focus {
   outline: none;
-  background: #fff;
-  border-color: #7fbfa5;
+  border-color: #7fbfa5 !important;
   box-shadow: 0 0 0 3px rgb(21 94 75 / 12%);
 }
 
 .encargados-table .field-disabled,
 .encargados-table .field-input:disabled {
-  background: var(--field-disabled-bg);
-  border: 1px dashed var(--field-disabled-border);
-  color: var(--muted);
-  cursor: not-allowed;
+  background: var(--field-disabled-bg) !important;
+  border: 1px dashed var(--field-disabled-border) !important;
+  color: #8b968f !important;
+  cursor: not-allowed !important;
   opacity: 1;
-  box-shadow: none;
-}
-
-.encargados-table .field-disabled:hover,
-.encargados-table .field-input:disabled:hover {
-  background: var(--field-disabled-bg);
-  border-color: var(--field-disabled-border);
+  box-shadow: none !important;
 }
 
 .encargados-table .field-disabled::placeholder,
@@ -432,48 +431,66 @@
   font-style: italic;
 }
 
-.encargados-table .field-select {
-  padding-right: 2px;
-}
-
 .encargados-table .field-hours,
 .encargados-table .field-studies {
   text-align: center;
 }
 
-/* Privilegio: tinte solo en el selector (no en toda la fila) */
-.encargados-table .field-privilege.privilege-none {
-  background: var(--priv-none);
-  border-color: #d0d8d3;
+/* Privilegio: color visible del control (forzado) */
+.encargados-table select.field-privilege {
+  font-weight: 650;
+  text-align: left;
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, #66736b 50%),
+    linear-gradient(135deg, #66736b 50%, transparent 50%);
+  background-position: calc(100% - 12px) calc(50% - 2px), calc(100% - 7px) calc(50% - 2px);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  padding-right: 22px;
 }
 
-.encargados-table .field-privilege.privilege-publicador {
-  background: var(--priv-publicador);
-  border-color: #c5dce8;
+.encargados-table select.field-privilege.privilege-none {
+  background-color: var(--priv-none) !important;
+  border-color: var(--priv-none-border) !important;
 }
 
-.encargados-table .field-privilege.privilege-auxiliar {
-  background: var(--priv-auxiliar);
-  border-color: #e2d4b8;
+.encargados-table select.field-privilege.privilege-publicador {
+  background-color: var(--priv-publicador) !important;
+  border-color: var(--priv-publicador-border) !important;
 }
 
-.encargados-table .field-privilege.privilege-regular {
-  background: var(--priv-regular);
-  border-color: #c5ddd0;
+.encargados-table select.field-privilege.privilege-auxiliar {
+  background-color: var(--priv-auxiliar) !important;
+  border-color: var(--priv-auxiliar-border) !important;
 }
 
-.encargados-table .field-privilege.privilege-inactivo {
-  background: var(--priv-inactivo);
-  border-color: #d4cce3;
+.encargados-table select.field-privilege.privilege-regular {
+  background-color: var(--priv-regular) !important;
+  border-color: var(--priv-regular-border) !important;
 }
 
-.encargados-table .field-privilege:focus {
-  box-shadow: 0 0 0 3px rgb(21 94 75 / 12%);
+.encargados-table select.field-privilege.privilege-inactivo {
+  background-color: var(--priv-inactivo) !important;
+  border-color: var(--priv-inactivo-border) !important;
 }
 
+.encargados-table select.field-privilege.privilege-publicador,
+.encargados-table select.field-privilege.privilege-auxiliar,
+.encargados-table select.field-privilege.privilege-regular,
+.encargados-table select.field-privilege.privilege-inactivo,
+.encargados-table select.field-privilege.privilege-none {
+  background-image: linear-gradient(45deg, transparent 50%, #66736b 50%),
+    linear-gradient(135deg, #66736b 50%, transparent 50%);
+  background-position: calc(100% - 12px) calc(50% - 2px), calc(100% - 7px) calc(50% - 2px);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+
+/* Tablet */
 @media (max-width: 900px) {
   .encargados-topbar {
-    padding: 6px 10px;
+    padding: 8px 10px;
   }
 
   .encargados-main {
@@ -481,17 +498,130 @@
   }
 
   .col-name {
-    width: 40%;
+    width: 30%;
   }
 
   .col-privilege {
-    width: 100px;
+    width: 110px;
+  }
+
+  .progress-stat {
+    min-width: 4.8rem;
   }
 }
 
+/* Celular: tarjetas compactas (no tabla desktop comprimida) */
 @media (max-width: 700px) {
   .encargados-toolbar {
     width: 100%;
     justify-content: space-between;
+  }
+
+  .save-indicator {
+    font-size: 0.7rem;
+    padding: 3px 7px;
+  }
+
+  .encargados-progress {
+    padding: 8px 10px;
+  }
+
+  .progress-stat {
+    min-width: 0;
+  }
+
+  .progress-stat strong {
+    font-size: 0.95rem;
+  }
+
+  .progress-track {
+    max-width: none;
+    width: 100%;
+    flex-basis: 100%;
+  }
+
+  .encargados-table {
+    table-layout: auto;
+    font-size: 0.9rem;
+  }
+
+  .encargados-table thead {
+    display: none;
+  }
+
+  .encargados-table tbody tr {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin: 8px;
+    padding: 10px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #fff;
+  }
+
+  .encargados-table tbody tr:nth-child(even) {
+    background: #fff;
+  }
+
+  .encargados-table tbody tr:hover {
+    background: #fff;
+  }
+
+  .encargados-table tbody td {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 0;
+    border: 0;
+    background: transparent !important;
+    width: auto !important;
+    text-align: left !important;
+  }
+
+  .encargados-table tbody td::before {
+    content: attr(data-label);
+    font-size: 0.64rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+  }
+
+  .encargados-table tbody td.col-id {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .encargados-table tbody td.col-id::before {
+    display: none;
+  }
+
+  .encargados-table tbody td.col-name {
+    grid-column: 1 / -1;
+  }
+
+  .encargados-table tbody td.col-name .person-name,
+  .encargados-table .person-name {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+    font-size: 1rem;
+  }
+
+  .encargados-table tbody td.col-privilege {
+    grid-column: 1 / -1;
+  }
+
+  .encargados-table tbody td.col-comments {
+    grid-column: 1 / -1;
+  }
+
+  .encargados-table .field-input {
+    min-height: 40px;
+    padding: 8px 10px;
+    font-size: 0.95rem;
   }
 }

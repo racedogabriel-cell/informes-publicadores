@@ -70,10 +70,30 @@ export async function closePeriod() {
 }
 
 /**
- * Guarda el lote del grupo (escritura real C–F).
+ * Guarda el lote del grupo (escritura real C–F). Fallback / rollback.
  * Content-Type: text/plain para evitar preflight CORS con Apps Script.
  */
 export async function postSaveGroup(payload) {
+  if (!GOOGLE_REPORTS_ENDPOINT) {
+    throw new Error('El conector de Apps Script no está configurado.');
+  }
+
+  return fetchJson(GOOGLE_REPORTS_ENDPOINT, {
+    method: 'POST',
+    mode: 'cors',
+    redirect: 'follow',
+    headers: {
+      'Content-Type': 'text/plain;charset=utf-8',
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
+/**
+ * Auto-save Encargados: una sola persona (action=savePerson).
+ * Content-Type: text/plain para evitar preflight CORS con Apps Script.
+ */
+export async function postSavePerson(payload) {
   if (!GOOGLE_REPORTS_ENDPOINT) {
     throw new Error('El conector de Apps Script no está configurado.');
   }

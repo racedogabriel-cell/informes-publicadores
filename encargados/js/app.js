@@ -1,30 +1,32 @@
 /**
- * Portal Encargados — lectura GET + guardado real POST (saveGroup).
- * Sprint UX: progreso del grupo, estados de fila, campos disabled/enabled,
- * tintes suaves por privilegio (selector + indicador).
+ * Portal Encargados — auto-save por persona (savePerson).
+ * saveGroup permanece en Apps Script como fallback, no lo usa esta UI.
  *
  * Grupo: ?grupo=1 | ?grupo=2
- * Horas: Publicador Sí/No; Auxiliar/Regular numérico; vacío/Inactivo bloquea campos.
+ * Completitud = indicador visual (docs/07); no condiciona el guardado.
  */
 
-import { getMonthlyReports, getSystemState, postSaveGroup } from './sheets.js';
+import { getMonthlyReports, getSystemState, postSavePerson } from './sheets.js';
 import { isEstadoAbierto, periodKeyToLabel } from './period.js';
 
 const PRIVILEGIOS = ['', 'Publicador', 'Auxiliar', 'Regular', 'Inactivo'];
-const ROW_STATE_CLASSES = [
-  'is-empty',
-  'is-editing',
-  'is-complete',
-  'is-error',
-  'is-saved',
-  'is-row-locked',
-];
+const COMPLETENESS_CLASSES = ['is-empty', 'is-editing', 'is-complete'];
 
 /** @type {{ grupo: string, mes: string, periodo: string } | null} */
 let sessionContext = null;
 let resolvedGrupo = null;
-/** @type {WeakMap<HTMLElement, ReturnType<typeof setTimeout>>} */
-const savedTimers = new WeakMap();
+
+/** @type {Map<string, string>} id → snapshot JSON del último estado guardado */
+const lastSavedById = new Map();
+
+/** @type {Map<string, { pending: object | null, running: boolean }>} */
+const saveQueues = new Map();
+
+/** @type {{ persona: object, error: string } | null} */
+let lastFailedSave = null;
+
+/** Contador de saves en vuelo (para indicador global). */
+let activeSaveCount = 0;
 
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>'"]/g, (char) => ({
@@ -108,7 +110,7 @@ function isNumericHours(value) {
   return Number.isFinite(Number(normalized));
 }
 
-/** Misma regla de completitud que Informes (docs/07–08): no cambia negocio. */
+/** Completitud docs/07: privilegio + horas válidas. Estudios/comentarios no cuentan. */
 function isPersonComplete(privilegio, horas) {
   const privilege = String(privilegio || '').trim();
   if (privilege === 'Inactivo') return true;
@@ -117,8 +119,32 @@ function isPersonComplete(privilegio, horas) {
   return false;
 }
 
-function isRowLocked(privilegio) {
-  return privilegio === '' || privilegio === 'Inactivo';
+function hasStarted(privilegio, horas, estudios, comentarios) {
+  return Boolean(
+    String(privilegio || '').trim() ||
+      String(horas || '').trim() ||
+      String(estudios || '').trim() ||
+      String(comentarios || '').trim(),
+  );
+}
+
+function isReportFieldsLocked(privilegio) {
+  return String(privilegio || '').trim() === '';
+}
+
+function isHoursDisabled(privilegio) {
+  const value = String(privilegio || '').trim();
+  return value === '' || value === 'Inactivo';
+}
+
+function personSnapshot(person) {
+  return JSON.stringify({
+    id: String(person.id || ''),
+    privilegio: String(person.privilegio || ''),
+    horas: String(person.horas || ''),
+    estudios: String(person.estudios || ''),
+    comentarios: String(person.comentarios || ''),
+  });
 }
 
 function hoursControlHtml(privilegio, horas, nombre) {
@@ -151,32 +177,34 @@ function hoursControlHtml(privilegio, horas, nombre) {
 function renderRow(person) {
   const nombre = person.nombre || '';
   const privilegio = String(person.privilegio || '').trim();
-  const locked = isRowLocked(privilegio);
   const slug = privilegeSlug(privilegio);
-  const disabledAttr = locked ? ' disabled' : '';
-  const fieldState = locked ? 'field-disabled' : 'field-enabled';
-  const estudiosValue = privilegio === '' ? '' : person.estudios;
-  const comentariosValue = privilegio === '' ? '' : person.comentarios;
+  const fieldsLocked = isReportFieldsLocked(privilegio);
+  const hoursDisabled = isHoursDisabled(privilegio);
+  const studiesDisabled = fieldsLocked;
+  const commentsDisabled = fieldsLocked;
+  const estudiosValue = fieldsLocked ? '' : person.estudios;
+  const comentariosValue = fieldsLocked ? '' : person.comentarios;
+
   return `
     <tr data-id="${escapeHtml(person.id)}" data-privilege="${slug}">
-      <td class="col-id">
-        <span class="privilege-dot" data-privilege="${slug}" aria-hidden="true"></span>
+      <td class="col-id" data-label="ID">
+        <span class="completeness-dot" aria-hidden="true"></span>
         <span class="id-value muted">${escapeHtml(person.id)}</span>
       </td>
-      <td class="col-name person-name" title="${escapeHtml(nombre)}">${escapeHtml(nombre)}</td>
-      <td class="col-privilege">
+      <td class="col-name person-name" data-label="Nombre" title="${escapeHtml(nombre)}">${escapeHtml(nombre)}</td>
+      <td class="col-privilege" data-label="Privilegio">
         <select class="field-input field-select field-privilege field-enabled privilege-${slug}" aria-label="Privilegio de ${escapeHtml(nombre)}">
           ${privilegeOptions(privilegio)}
         </select>
       </td>
-      <td class="col-hours">
+      <td class="col-hours" data-label="Horas">
         ${hoursControlHtml(privilegio, person.horas, nombre)}
       </td>
-      <td class="col-studies">
-        <input class="field-input field-studies ${fieldState}" type="text" inputmode="numeric" value="${escapeHtml(estudiosValue)}" placeholder="${locked ? '—' : ''}" aria-label="Estudios de ${escapeHtml(nombre)}"${disabledAttr} />
+      <td class="col-studies" data-label="Estudios">
+        <input class="field-input field-studies ${studiesDisabled ? 'field-disabled' : 'field-enabled'}" type="text" inputmode="numeric" value="${escapeHtml(estudiosValue)}" placeholder="${studiesDisabled ? '—' : ''}" aria-label="Estudios de ${escapeHtml(nombre)}"${studiesDisabled ? ' disabled' : ''} />
       </td>
-      <td class="col-comments">
-        <input class="field-input field-comments ${fieldState}" type="text" value="${escapeHtml(comentariosValue)}" placeholder="${locked ? 'Elegí privilegio' : ''}" aria-label="Comentarios de ${escapeHtml(nombre)}"${disabledAttr} />
+      <td class="col-comments" data-label="Comentarios">
+        <input class="field-input field-comments ${commentsDisabled ? 'field-disabled' : 'field-enabled'}" type="text" value="${escapeHtml(comentariosValue)}" placeholder="${commentsDisabled ? 'Elegí privilegio' : ''}" aria-label="Comentarios de ${escapeHtml(nombre)}"${commentsDisabled ? ' disabled' : ''} />
       </td>
     </tr>
   `;
@@ -187,9 +215,9 @@ function renderTable(people) {
     <section class="encargados-board" aria-label="Informes del grupo">
       <div class="encargados-progress" aria-live="polite">
         <div class="progress-stats">
-          <span class="progress-stat"><strong data-stat="total">0</strong> personas</span>
-          <span class="progress-stat is-complete-stat"><strong data-stat="complete">0</strong> completas</span>
-          <span class="progress-stat is-pending-stat"><strong data-stat="pending">0</strong> pendientes</span>
+          <span class="progress-stat"><strong data-stat="total">0</strong><span class="progress-stat-label">personas</span></span>
+          <span class="progress-stat is-complete-stat"><strong data-stat="complete">0</strong><span class="progress-stat-label">completas</span></span>
+          <span class="progress-stat is-pending-stat"><strong data-stat="pending">0</strong><span class="progress-stat-label">pendientes</span></span>
         </div>
         <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" data-progress-track>
           <i data-progress-fill></i>
@@ -224,12 +252,14 @@ function readHoursValue(row) {
 
 function readRowPerson(row) {
   const privilegio = row.querySelector('.field-privilege')?.value ?? '';
+  const hoursDisabled = isHoursDisabled(privilegio);
+  const fieldsLocked = isReportFieldsLocked(privilegio);
   return {
     id: row.getAttribute('data-id') || '',
     privilegio,
-    horas: isRowLocked(privilegio) ? '' : readHoursValue(row),
-    estudios: privilegio === '' ? '' : row.querySelector('.field-studies')?.value ?? '',
-    comentarios: privilegio === '' ? '' : row.querySelector('.field-comments')?.value ?? '',
+    horas: hoursDisabled ? '' : readHoursValue(row),
+    estudios: fieldsLocked ? '' : row.querySelector('.field-studies')?.value ?? '',
+    comentarios: fieldsLocked ? '' : row.querySelector('.field-comments')?.value ?? '',
   };
 }
 
@@ -249,62 +279,23 @@ function applyPrivilegeChrome(row) {
   const privilegio = row.querySelector('.field-privilege')?.value ?? '';
   const slug = privilegeSlug(privilegio);
   row.dataset.privilege = slug;
-
   const select = row.querySelector('.field-privilege');
   if (select) {
     select.className = `field-input field-select field-privilege field-enabled privilege-${slug}`;
   }
-
-  const dot = row.querySelector('.privilege-dot');
-  if (dot) dot.dataset.privilege = slug;
 }
 
-function clearTransientSaved(row) {
-  const timer = savedTimers.get(row);
-  if (timer) {
-    clearTimeout(timer);
-    savedTimers.delete(row);
-  }
-  row.classList.remove('is-saved');
-}
-
-function setRowVisualState(row, state) {
-  ROW_STATE_CLASSES.forEach((cls) => row.classList.remove(cls));
-  if (state) row.classList.add(state);
-  if (state === 'is-empty' || state === 'is-complete') {
-    const privilegio = row.querySelector('.field-privilege')?.value ?? '';
-    if (isRowLocked(privilegio)) row.classList.add('is-row-locked');
-  }
-}
-
-function classifyRowState(row) {
-  if (row.classList.contains('is-error')) return 'is-error';
-  if (row.classList.contains('is-saved')) return 'is-saved';
-
+function setCompletenessState(row) {
   const person = readRowPerson(row);
-  if (!person.privilegio) return 'is-empty';
-  if (isPersonComplete(person.privilegio, person.horas)) return 'is-complete';
-  return 'is-editing';
-}
+  COMPLETENESS_CLASSES.forEach((cls) => row.classList.remove(cls));
 
-function refreshRowState(row, { keepError = true } = {}) {
-  applyPrivilegeChrome(row);
-
-  if (!keepError) row.classList.remove('is-error');
-
-  const hadSaved = row.classList.contains('is-saved');
-  const state = classifyRowState(row);
-  setRowVisualState(row, state);
-  if (hadSaved && state === 'is-complete') {
-    row.classList.add('is-saved');
+  let state = 'is-empty';
+  if (isPersonComplete(person.privilegio, person.horas)) {
+    state = 'is-complete';
+  } else if (hasStarted(person.privilegio, person.horas, person.estudios, person.comentarios)) {
+    state = 'is-editing';
   }
-}
-
-function refreshAllRowStates({ keepError = true } = {}) {
-  document.querySelectorAll('.encargados-table tbody tr').forEach((row) => {
-    refreshRowState(row, { keepError });
-  });
-  refreshProgressSummary();
+  row.classList.add(state);
 }
 
 function refreshProgressSummary() {
@@ -338,27 +329,37 @@ function refreshProgressSummary() {
   root.dataset.complete = complete === total && total > 0 ? 'true' : 'false';
 }
 
-function markRowsSaved(ids) {
-  const idSet = new Set((ids || []).map(String));
-  document.querySelectorAll('.encargados-table tbody tr').forEach((row) => {
-    const id = row.getAttribute('data-id') || '';
-    if (idSet.size && !idSet.has(id)) return;
-    clearTransientSaved(row);
-    row.classList.remove('is-error');
-    refreshRowState(row, { keepError: false });
-    if (!row.classList.contains('is-complete') && !row.classList.contains('is-empty')) {
-      // Guardado parcial de fila aún pendiente: no marcar saved.
-      return;
-    }
-    row.classList.add('is-saved');
-    const timer = setTimeout(() => {
-      row.classList.remove('is-saved');
-      savedTimers.delete(row);
-      refreshRowState(row, { keepError: false });
-    }, 1800);
-    savedTimers.set(row, timer);
-  });
+function refreshRowVisuals(row) {
+  applyPrivilegeChrome(row);
+  setCompletenessState(row);
+}
+
+function refreshAllVisuals() {
+  document.querySelectorAll('.encargados-table tbody tr').forEach((row) => refreshRowVisuals(row));
   refreshProgressSummary();
+}
+
+function setSaveIndicator(state, message) {
+  const el = document.querySelector('#save-indicator');
+  if (!el) return;
+  el.hidden = false;
+  el.dataset.state = state;
+  const text = el.querySelector('.save-indicator-text');
+  const retry = el.querySelector('.save-indicator-retry');
+  if (text) text.textContent = message;
+  if (retry) retry.hidden = state !== 'error';
+}
+
+function syncSaveIndicator() {
+  if (lastFailedSave) {
+    setSaveIndicator('error', 'Error al guardar');
+    return;
+  }
+  if (activeSaveCount > 0) {
+    setSaveIndicator('saving', 'Guardando cambios…');
+    return;
+  }
+  setSaveIndicator('saved', 'Todos los cambios guardados');
 }
 
 function applyRowMode(row) {
@@ -370,33 +371,139 @@ function applyRowMode(row) {
   if (!hoursCell || !studies || !comments) return;
 
   const previousHours = readHoursValue(row);
-  const locked = isRowLocked(privilegio);
+  const fieldsLocked = isReportFieldsLocked(privilegio);
+  const hoursDisabled = isHoursDisabled(privilegio);
 
-  hoursCell.innerHTML = hoursControlHtml(privilegio, locked ? '' : previousHours, nombre);
-  studies.disabled = locked;
-  comments.disabled = locked;
-  studies.classList.toggle('field-disabled', locked);
-  studies.classList.toggle('field-enabled', !locked);
-  comments.classList.toggle('field-disabled', locked);
-  comments.classList.toggle('field-enabled', !locked);
-  studies.placeholder = locked ? '—' : '';
-  comments.placeholder = locked ? 'Elegí privilegio' : '';
+  hoursCell.innerHTML = hoursControlHtml(
+    privilegio,
+    hoursDisabled ? '' : previousHours,
+    nombre,
+  );
 
-  if (privilegio === '') {
+  studies.disabled = fieldsLocked;
+  comments.disabled = fieldsLocked;
+  studies.classList.toggle('field-disabled', fieldsLocked);
+  studies.classList.toggle('field-enabled', !fieldsLocked);
+  comments.classList.toggle('field-disabled', fieldsLocked);
+  comments.classList.toggle('field-enabled', !fieldsLocked);
+  studies.placeholder = fieldsLocked ? '—' : '';
+  comments.placeholder = fieldsLocked ? 'Elegí privilegio' : '';
+
+  if (fieldsLocked) {
     studies.value = '';
     comments.value = '';
   }
 
-  row.classList.remove('is-error');
-  clearTransientSaved(row);
-  refreshRowState(row, { keepError: false });
+  refreshRowVisuals(row);
   refreshProgressSummary();
+}
+
+function buildSavePersonPayload(persona) {
+  if (!sessionContext) throw new Error('No hay un grupo cargado.');
+  return {
+    action: 'savePerson',
+    mode: 'save',
+    grupo: sessionContext.grupo,
+    mes: sessionContext.mes,
+    periodo: sessionContext.periodo,
+    persona: {
+      id: String(persona.id || ''),
+      privilegio: String(persona.privilegio || ''),
+      horas: String(persona.horas || ''),
+      estudios: String(persona.estudios || ''),
+      comentarios: String(persona.comentarios || ''),
+    },
+  };
+}
+
+async function drainPersonQueue(personId) {
+  const queue = saveQueues.get(personId);
+  if (!queue || queue.running) return;
+  queue.running = true;
+
+  while (queue.pending) {
+    const persona = queue.pending;
+    queue.pending = null;
+    activeSaveCount += 1;
+    syncSaveIndicator();
+
+    try {
+      const result = await postSavePerson(buildSavePersonPayload(persona));
+      const failed =
+        !result ||
+        result.ok === false ||
+        (result.errors && result.errors.length > 0) ||
+        result.wroteToSheet === false;
+
+      if (failed) {
+        lastFailedSave = {
+          persona,
+          error: result?.message || result?.error || result?.errors?.[0]?.error || 'Error al guardar',
+        };
+        activeSaveCount = Math.max(0, activeSaveCount - 1);
+        syncSaveIndicator();
+        break;
+      }
+
+      lastSavedById.set(String(persona.id), personSnapshot(persona));
+      if (lastFailedSave && String(lastFailedSave.persona.id) === String(persona.id)) {
+        lastFailedSave = null;
+      }
+    } catch (error) {
+      lastFailedSave = {
+        persona,
+        error: error?.message || 'Error al guardar',
+      };
+      activeSaveCount = Math.max(0, activeSaveCount - 1);
+      syncSaveIndicator();
+      break;
+    }
+
+    activeSaveCount = Math.max(0, activeSaveCount - 1);
+    syncSaveIndicator();
+  }
+
+  queue.running = false;
+  if (queue.pending) {
+    void drainPersonQueue(personId);
+  }
+}
+
+function enqueuePersonSave(persona, { force = false } = {}) {
+  const id = String(persona.id || '');
+  if (!id || !sessionContext) return;
+
+  const snap = personSnapshot(persona);
+  if (!force && lastSavedById.get(id) === snap) return;
+
+  let queue = saveQueues.get(id);
+  if (!queue) {
+    queue = { pending: null, running: false };
+    saveQueues.set(id, queue);
+  }
+  queue.pending = { ...persona, id };
+  void drainPersonQueue(id);
+}
+
+function requestSaveFromRow(row, { force = false } = {}) {
+  const persona = readRowPerson(row);
+  enqueuePersonSave(persona, { force });
+}
+
+function retryLastFailedSave() {
+  if (!lastFailedSave?.persona) return;
+  const persona = lastFailedSave.persona;
+  lastFailedSave = null;
+  enqueuePersonSave(persona, { force: true });
 }
 
 function bindTableInteractions(root) {
   root.querySelectorAll('.encargados-table tbody tr').forEach((row) => {
     const privilege = row.querySelector('.field-privilege');
-    privilege?.addEventListener('change', () => applyRowMode(row));
+    privilege?.addEventListener('change', () => {
+      applyRowMode(row);
+      requestSaveFromRow(row);
+    });
   });
 
   root.addEventListener('input', (event) => {
@@ -404,22 +511,40 @@ function bindTableInteractions(root) {
     const row = event.target instanceof Element ? event.target.closest('tr') : null;
     if (!row || !root.contains(row)) return;
     if (event.target instanceof Element && event.target.classList.contains('field-privilege')) return;
-    row.classList.remove('is-error');
-    clearTransientSaved(row);
-    refreshRowState(row, { keepError: false });
+    refreshRowVisuals(row);
     refreshProgressSummary();
   });
+
+  root.addEventListener(
+    'blur',
+    (event) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      if (target.classList.contains('field-privilege')) return;
+      if (
+        !target.classList.contains('field-hours') &&
+        !target.classList.contains('field-studies') &&
+        !target.classList.contains('field-comments')
+      ) {
+        return;
+      }
+      const row = target.closest('tr');
+      if (!row || !root.contains(row)) return;
+      requestSaveFromRow(row);
+    },
+    true,
+  );
 
   root.addEventListener('change', (event) => {
     const target = event.target;
     if (!(target instanceof Element)) return;
-    if (target.classList.contains('field-privilege')) return;
+    if (!target.classList.contains('field-hours')) return;
+    if (target.tagName !== 'SELECT') return;
     const row = target.closest('tr');
     if (!row || !root.contains(row)) return;
-    row.classList.remove('is-error');
-    clearTransientSaved(row);
-    refreshRowState(row, { keepError: false });
+    refreshRowVisuals(row);
     refreshProgressSummary();
+    requestSaveFromRow(row);
   });
 }
 
@@ -444,160 +569,18 @@ function showStatus(message, { retry = false } = {}) {
   }
 }
 
-function setSaveEnabled(enabled) {
-  const button = document.querySelector('#save-group');
-  if (!button) return;
-  button.disabled = !enabled;
-  button.title = enabled
-    ? 'Guardar informes del grupo en Google Sheets'
-    : 'Disponible cuando el grupo esté cargado';
-}
-
-function setSaveBusy(busy) {
-  const button = document.querySelector('#save-group');
-  if (!button) return;
-  button.disabled = busy || !sessionContext;
-  button.textContent = busy ? 'Guardando…' : 'Guardar Grupo';
-}
-
-function setFeedback(message, tone = 'info') {
-  const el = document.querySelector('#save-feedback');
-  if (!el) return;
-  if (!message) {
-    el.hidden = true;
-    el.textContent = '';
-    el.dataset.tone = '';
-    return;
-  }
-  el.hidden = false;
-  el.dataset.tone = tone;
-  el.textContent = message;
-}
-
-function markErrorRows(errors) {
-  document.querySelectorAll('.encargados-table tbody tr').forEach((row) => {
-    row.classList.remove('is-error', 'is-saved');
-  });
-
-  (errors || []).forEach((item) => {
-    const id = item?.id;
-    if (id == null || id === '') return;
-    const row = document.querySelector(`.encargados-table tbody tr[data-id="${CSS.escape(String(id))}"]`);
-    if (!row) return;
-    clearTransientSaved(row);
-    ROW_STATE_CLASSES.forEach((cls) => row.classList.remove(cls));
-    row.classList.add('is-error');
-    applyPrivilegeChrome(row);
-  });
-
-  document.querySelectorAll('.encargados-table tbody tr').forEach((row) => {
-    if (!row.classList.contains('is-error')) refreshRowState(row, { keepError: false });
-  });
-  refreshProgressSummary();
-}
-
-function collectPayload() {
-  if (!sessionContext) {
-    throw new Error('No hay un grupo cargado para enviar.');
-  }
-
-  const rows = document.querySelectorAll('.encargados-table tbody tr');
-  const personas = Array.from(rows).map((row) => readRowPerson(row));
-
-  return {
-    action: 'saveGroup',
-    mode: 'save',
-    grupo: sessionContext.grupo,
-    mes: sessionContext.mes,
-    periodo: sessionContext.periodo,
-    personas,
-  };
-}
-
-function formatErrorSummary(errors) {
-  if (!errors?.length) return '';
-  const sample = errors
-    .slice(0, 5)
-    .map((item) => `ID ${item.id}: ${item.error}`)
-    .join(' · ');
-  const more = errors.length > 5 ? ` (+${errors.length - 5} más)` : '';
-  return `${sample}${more}`;
-}
-
-async function handleSaveGroup() {
-  setFeedback('');
-  setSaveBusy(true);
-
-  try {
-    const payload = collectPayload();
-    const result = await postSaveGroup(payload);
-
-    if (!result) {
-      setFeedback('Respuesta vacía del servidor.', 'error');
-      return;
-    }
-
-    if (result.ok === false && !result.wroteToSheet && !(result.errors || []).length) {
-      setFeedback(result.message || result.error || 'No se pudo guardar el grupo.', 'error');
-      return;
-    }
-
-    const errors = result.errors || [];
-    if (errors.length) markErrorRows(errors);
-
-    if (result.counts?.updated > 0 && errors.length === 0) {
-      const savedIds = payload.personas.map((person) => person.id);
-      try {
-        await loadGroup(sessionContext.grupo, { keepFeedback: true });
-        markRowsSaved(savedIds);
-        setFeedback(result.message || 'Grupo guardado correctamente.', 'success');
-      } catch (reloadError) {
-        setFeedback(
-          `${result.message || 'Grupo guardado.'} No se pudo releer la tabla: ${reloadError.message || 'error'}`,
-          'error',
-        );
-      }
-      return;
-    }
-
-    if (result.counts?.updated > 0 && errors.length > 0) {
-      const failed = new Set(errors.map((item) => String(item.id)));
-      const savedIds = payload.personas
-        .map((person) => person.id)
-        .filter((id) => !failed.has(String(id)));
-      markRowsSaved(savedIds);
-      setFeedback(
-        `${result.message || 'Guardado parcial.'} ${formatErrorSummary(errors)}`,
-        'error',
-      );
-      return;
-    }
-
-    if (errors.length) {
-      setFeedback(
-        `${result.message || 'No se actualizó ninguna persona.'} ${formatErrorSummary(errors)}`,
-        'error',
-      );
-      return;
-    }
-
-    setFeedback(result.message || 'Guardado completado.', result.ok ? 'success' : 'error');
-  } catch (error) {
-    setFeedback(error.message || 'No se pudo enviar el lote.', 'error');
-  } finally {
-    setSaveBusy(false);
-  }
-}
-
-async function loadGroup(grupo, { keepFeedback = false } = {}) {
+async function loadGroup(grupo) {
   const root = document.querySelector('#encargados-app');
   if (!root) return;
 
   sessionContext = null;
-  setSaveEnabled(false);
-  if (!keepFeedback) setFeedback('');
+  lastSavedById.clear();
+  saveQueues.clear();
+  lastFailedSave = null;
+  activeSaveCount = 0;
   setContext(grupo, '…');
   showStatus('Cargando informes…');
+  setSaveIndicator('saving', 'Cargando…');
 
   const [system, data] = await Promise.all([getSystemState(), getMonthlyReports()]);
   if (!data) throw new Error('El conector de Apps Script no está configurado.');
@@ -622,38 +605,48 @@ async function loadGroup(grupo, { keepFeedback = false } = {}) {
   sessionContext = { grupo: group.grupo, mes: mesLabel, periodo };
   setContext(group.grupo, mesLabel);
   root.innerHTML = renderTable(people);
+
+  people.forEach((person) => {
+    lastSavedById.set(
+      String(person.id),
+      personSnapshot({
+        id: person.id,
+        privilegio: person.privilegio || '',
+        horas: person.horas || '',
+        estudios: person.estudios || '',
+        comentarios: person.comentarios || '',
+      }),
+    );
+  });
+
   bindTableInteractions(root);
-  refreshAllRowStates({ keepError: false });
-  setSaveEnabled(true);
+  refreshAllVisuals();
+  setSaveIndicator('saved', 'Todos los cambios guardados');
 }
 
 async function init() {
-  setSaveEnabled(false);
-  setFeedback('');
-
   const resolved = resolveGroupParam();
   if (!resolved.ok) {
     sessionContext = null;
     setContext('—', '—');
+    const indicator = document.querySelector('#save-indicator');
+    if (indicator) indicator.hidden = true;
     showStatus(resolved.message);
     return;
   }
 
   resolvedGrupo = resolved.grupo;
 
-  const saveButton = document.querySelector('#save-group');
-  if (saveButton) {
-    saveButton.addEventListener('click', () => {
-      void handleSaveGroup();
-    });
-  }
+  document.querySelector('#save-indicator-retry')?.addEventListener('click', () => {
+    retryLastFailedSave();
+  });
 
   try {
     await loadGroup(resolved.grupo);
   } catch (error) {
     sessionContext = null;
-    setSaveEnabled(false);
     setContext(resolved.grupo, '—');
+    setSaveIndicator('error', 'Error al cargar');
     showStatus(error.message || 'No se pudieron cargar los informes.', { retry: true });
   }
 }

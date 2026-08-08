@@ -3,8 +3,8 @@
 Este script atiende:
 
 - lectura del período de trabajo (`Grupo 1` / `Grupo 2`);
-- lectura y apertura del ciclo mensual (`Sistema`, `Personas`);
-- canal POST dry-run del Portal Encargados.
+- lectura y apertura/cierre del ciclo mensual (`Sistema`, `Personas`, `Historial`);
+- escritura Encargados: `savePerson` (auto-save) y `saveGroup` (fallback).
 
 No entrega teléfonos, contactos de emergencia u otros datos ajenos al contrato.
 
@@ -46,15 +46,27 @@ Orden seguro:
 6. Actualiza `Sistema`: `EstadoPeriodo = CERRADO`, `FechaCierre`.
 7. **No** limpia Grupo 1/2. **No** abre el siguiente período.
 
-## Escritura Encargados — dry-run (`doPost`)
+## Escritura Encargados (`doPost`)
 
-`action=saveGroup` + `mode=save`:
+### `action=savePerson` + `mode=save` (auto-save actual)
+
+Una sola persona por request. Usado por el Portal Encargados al cambiar privilegio o al salir (blur) de Horas/Estudios/Comentarios.
+
+1. Verifica `Sistema` con período activo y `EstadoPeriodo=ABIERTO`.
+2. Exige `periodo === PeriodoActivo`.
+3. Ubica la persona **solo por ID** en la hoja del grupo.
+4. Actualiza únicamente columnas C–F.
+5. No exige completitud (permiso guardar incompleto; misma validación de formato que Informes).
+
+### `action=saveGroup` + `mode=save` (fallback / rollback)
+
+Lote completo. Se mantiene intacto; la UI nueva ya no lo usa.
 
 1. Verifica `Sistema` con período activo y `EstadoPeriodo=ABIERTO`.
 2. Ubica cada persona **solo por ID** en la hoja del grupo.
-3. Actualiza únicamente columnas C–F (Privilegio, Horas, Estudios, Comentarios).
-4. Valida reglas de negocio (docs/07 y docs/08) persona a persona.
-5. Devuelve conteos + detalle de errores; un error no impide guardar las demás.
+3. Actualiza únicamente columnas C–F.
+4. Valida reglas de negocio persona a persona.
+5. Un error no impide guardar las demás.
 
 No modifica ID, Nombre, B3, Historial, Personas ni el ciclo de períodos.
 
