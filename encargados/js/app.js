@@ -432,16 +432,16 @@ async function drainPersonQueue(personId) {
 
     try {
       const result = await postSavePerson(buildSavePersonPayload(persona));
-      const failed =
-        !result ||
-        result.ok === false ||
-        (result.errors && result.errors.length > 0) ||
-        result.wroteToSheet === false;
+      const failed = !(result && result.ok === true && result.wroteToSheet === true);
 
       if (failed) {
         lastFailedSave = {
           persona,
-          error: result?.message || result?.error || result?.errors?.[0]?.error || 'Error al guardar',
+          error:
+            result?.message ||
+            result?.error ||
+            result?.errors?.[0]?.error ||
+            'Error al guardar',
         };
         activeSaveCount = Math.max(0, activeSaveCount - 1);
         syncSaveIndicator();
@@ -538,11 +538,12 @@ function bindTableInteractions(root) {
     true,
   );
 
+  // Horas: SELECT (Publicador) e INPUT (Auxiliar/Regular) guardan en change.
+  // blur sigue como respaldo; lastSavedById evita POST duplicado si el snapshot no cambió.
   root.addEventListener('change', (event) => {
     const target = event.target;
     if (!(target instanceof Element)) return;
     if (!target.classList.contains('field-hours')) return;
-    if (target.tagName !== 'SELECT') return;
     const row = target.closest('tr');
     if (!row || !root.contains(row)) return;
     refreshRowVisuals(row);
