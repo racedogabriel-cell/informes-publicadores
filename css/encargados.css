@@ -334,11 +334,11 @@
 }
 
 .encargados-table tbody td {
-  padding: 2px 6px;
+  /* Sin height fija: la fila la define el control más alto (~1.55rem) */
+  padding: 0 6px;
   border-bottom: 1px solid #e8eee9;
   vertical-align: middle;
   background: #fff;
-  height: 1.9rem;
 }
 
 .encargados-table tbody tr:nth-child(even) td {
@@ -639,7 +639,7 @@
 }
 
 
-/* Celular: ● ID Nombre / Privilegio|Horas|Est. / Comentarios vacío compacto */
+/* Celular: renglones densos en grid (● ID Nombre | Priv | Horas | Est. | +) */
 @media (max-width: 700px) {
   .encargados-toolbar {
     width: 100%;
@@ -716,11 +716,12 @@
       var(--col-plus);
     grid-template-areas: 'id name priv hours studies comments';
     column-gap: 3px;
-    row-gap: 3px;
-    margin: 3px 4px;
-    padding: 3px 4px;
-    border: 1px solid var(--line);
-    border-radius: 6px;
+    row-gap: 2px;
+    margin: 0;
+    padding: 0 6px;
+    border: 0;
+    border-bottom: 1px solid #e8eee9;
+    border-radius: 0;
     background: #fff;
     align-items: center;
   }
@@ -740,9 +741,16 @@
     align-items: stretch;
   }
 
-  .encargados-table tbody tr:nth-child(even),
+  .encargados-table tbody tr:nth-child(even) {
+    background: #fafbfa;
+  }
+
   .encargados-table tbody tr:hover {
-    background: #fff;
+    background: #f3f7f4;
+  }
+
+  .encargados-table tbody tr:last-child {
+    border-bottom: 0;
   }
 
   .encargados-table tbody td {
@@ -831,8 +839,8 @@
   .encargados-table .field-input {
     width: 100%;
     min-height: 0;
-    height: 1.65rem;
-    padding: 2px 4px;
+    height: 1.55rem; /* misma densidad que desktop */
+    padding: 0 4px;
     font-size: 0.8rem;
     font-weight: 400;
     border-radius: 3px;
@@ -897,12 +905,12 @@
     width: 100%;
     min-width: 0;
     max-width: none;
-    height: 1.65rem;
+    height: 1.55rem;
     min-height: 0;
     padding: 0;
     font-size: 0.84rem;
     font-weight: 700;
-    line-height: 1.65rem;
+    line-height: 1.55rem;
     text-align: center;
     white-space: nowrap;
     overflow: hidden;
