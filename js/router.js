@@ -70,8 +70,8 @@ export const navItems = [
 ];
 
 export function renderRoute() {
-  const id = location.hash.slice(1) || 'inicio';
-  const route = routes[id] || routes.inicio;
+  const id = location.hash.slice(1) || 'informes';
+  const route = routes[id] || routes.informes;
   document.querySelector('#page-title').textContent = route.title;
   document.querySelector('#page-eyebrow').textContent = route.eyebrow;
   document.querySelector('#app').innerHTML = route.view();
