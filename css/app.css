@@ -495,6 +495,11 @@
   max-width: 100%;
   box-sizing: border-box;
   text-align: center;
+  /* Paridad con select.field-privilege (Alternativa A) */
+  font-weight: 650;
+  height: 1.375rem;
+  line-height: 1.375rem;
+  padding: 0 6px;
 }
 
 @media (max-width: 700px) {
@@ -609,9 +614,10 @@
     display: block;
     width: 100%;
     font-size: 0.72rem;
-    padding: 1px 0.15rem;
-    height: 1.65rem;
-    line-height: 1.55rem;
+    font-weight: 650;
+    padding: 0 0.15rem;
+    height: 1.375rem;
+    line-height: 1.375rem;
     box-sizing: border-box;
   }
 

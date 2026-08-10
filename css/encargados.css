@@ -1,6 +1,7 @@
 ﻿/* Portal Encargados â€” auto-save, completitud, privilegios, responsive. */
 
 :root {
+  /* Colores densos: solo opciones del <select> desplegado */
   --priv-publicador: #d4e8f6;
   --priv-publicador-border: #6fa8cc;
   --priv-publicador-text: #174a6b;
@@ -16,6 +17,12 @@
   --priv-none: #eef1ef;
   --priv-none-border: #c5cdc8;
   --priv-none-text: #66736b;
+  /* Tintes suaves: valor cerrado / chip de consulta (estilo Horas) */
+  --priv-publicador-soft: #f2f7fb;
+  --priv-auxiliar-soft: #faf6ee;
+  --priv-regular-soft: #f1f7f3;
+  --priv-inactivo-soft: #f5f3f8;
+  --priv-none-soft: transparent;
   --complete-dot: #2f9e6b;
   --editing-dot: #d69e2e;
   --empty-dot: #a8b2ac;
@@ -493,9 +500,9 @@
   outline: none;
 }
 
-/* Privilegio: chip compacto con contraste (edición y consulta) */
+/* Privilegio: indicador discreto (estilo Horas), no chip/botón */
 .encargados-table select.field-privilege {
-  font-weight: 700;
+  font-weight: 650;
   font-size: 0.78rem;
   text-align: center;
   text-align-last: center;
@@ -506,8 +513,10 @@
   background-position: calc(100% - 9px) calc(50% - 1px), calc(100% - 5px) calc(50% - 1px);
   background-size: 4px 4px, 4px 4px;
   background-repeat: no-repeat;
-  padding: 2px 16px 2px 5px;
-  height: 1.55rem;
+  padding: 0 16px 0 5px;
+  height: 1.375rem; /* ~22px */
+  line-height: 1.375rem;
+  min-height: 0;
 }
 
 .encargados-table span.field-privilege,
@@ -515,51 +524,52 @@
   display: inline-block;
   max-width: 100%;
   box-sizing: border-box;
-  font-weight: 700;
+  font-weight: 650;
   font-size: 0.78rem;
-  line-height: 1.25;
+  line-height: 1.375rem;
+  height: 1.375rem;
   text-align: center;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   cursor: default;
   border-radius: 3px;
-  padding: 2px 6px;
+  padding: 0 6px;
   vertical-align: middle;
 }
 
 .encargados-table .field-privilege.privilege-none,
 .encargados-table .privilege-chip.privilege-none {
-  background-color: var(--priv-none) !important;
-  border: 1px solid var(--priv-none-border) !important;
+  background-color: var(--priv-none-soft) !important;
+  border: 1px solid transparent !important;
   color: var(--priv-none-text) !important;
 }
 
 .encargados-table .field-privilege.privilege-publicador,
 .encargados-table .privilege-chip.privilege-publicador {
-  background-color: var(--priv-publicador) !important;
-  border: 1px solid var(--priv-publicador-border) !important;
+  background-color: var(--priv-publicador-soft) !important;
+  border: 1px solid transparent !important;
   color: var(--priv-publicador-text) !important;
 }
 
 .encargados-table .field-privilege.privilege-auxiliar,
 .encargados-table .privilege-chip.privilege-auxiliar {
-  background-color: var(--priv-auxiliar) !important;
-  border: 1px solid var(--priv-auxiliar-border) !important;
+  background-color: var(--priv-auxiliar-soft) !important;
+  border: 1px solid transparent !important;
   color: var(--priv-auxiliar-text) !important;
 }
 
 .encargados-table .field-privilege.privilege-regular,
 .encargados-table .privilege-chip.privilege-regular {
-  background-color: var(--priv-regular) !important;
-  border: 1px solid var(--priv-regular-border) !important;
+  background-color: var(--priv-regular-soft) !important;
+  border: 1px solid transparent !important;
   color: var(--priv-regular-text) !important;
 }
 
 .encargados-table .field-privilege.privilege-inactivo,
 .encargados-table .privilege-chip.privilege-inactivo {
-  background-color: var(--priv-inactivo) !important;
-  border: 1px solid var(--priv-inactivo-border) !important;
+  background-color: var(--priv-inactivo-soft) !important;
+  border: 1px solid transparent !important;
   color: var(--priv-inactivo-text) !important;
 }
 
@@ -837,10 +847,11 @@
     max-width: none !important;
     field-sizing: fixed;
     min-height: 0;
-    height: 1.65rem;
-    padding: 1px 0.65rem 1px 0.15rem !important;
+    height: 1.375rem;
+    line-height: 1.375rem;
+    padding: 0 0.65rem 0 0.15rem !important;
     font-size: 0.72rem;
-    font-weight: 700;
+    font-weight: 650;
     box-sizing: border-box;
     background-position: calc(100% - 3px) calc(50% - 1px), calc(100% - 0px) calc(50% - 1px);
     background-size: 3px 3px, 3px 3px;
