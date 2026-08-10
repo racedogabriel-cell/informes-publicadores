@@ -479,6 +479,23 @@
   padding-right: 2px;
 }
 
+/* Publicador con Horas = No: alerta visual */
+.encargados-table select.field-hours.hours-no {
+  background-color: #fdecec !important;
+  border-color: #f0b4b4 !important;
+  color: var(--danger, #b42318) !important;
+  font-weight: 700;
+}
+
+.encargados-table select.field-hours.hours-no:hover,
+.encargados-table select.field-hours.hours-no:focus {
+  background-color: #fce0e0 !important;
+  border-color: #e89a9a !important;
+  color: var(--danger, #b42318) !important;
+  box-shadow: 0 0 0 2px rgb(180 35 24 / 12%);
+  outline: none;
+}
+
 /* Privilegio: chip compacto con contraste (edición y consulta) */
 .encargados-table select.field-privilege {
   font-weight: 700;

@@ -82,6 +82,7 @@ export function hoursControlHtml(privilegio, horas, nombre) {
 
   if (privilegio === 'Publicador') {
     const current = normalizeYesNo(horas);
+    const noClass = current === 'No' ? ' hours-no' : '';
     const options = [
       { value: '', label: '—' },
       { value: 'Sí', label: 'Sí' },
@@ -92,7 +93,7 @@ export function hoursControlHtml(privilegio, horas, nombre) {
         return `<option value="${escapeHtml(item.value)}"${selected}>${escapeHtml(item.label)}</option>`;
       })
       .join('');
-    return `<select class="field-input field-select field-hours field-enabled" aria-label="${label}">${options}</select>`;
+    return `<select class="field-input field-select field-hours field-enabled${noClass}" aria-label="${label}">${options}</select>`;
   }
 
   if (privilegio === 'Auxiliar' || privilegio === 'Regular') {
@@ -276,6 +277,15 @@ export function createReportsEditor(options) {
     }
   }
 
+  function applyHoursChrome(row) {
+    const hoursEl = row.querySelector('.field-hours');
+    if (!(hoursEl instanceof HTMLSelectElement)) {
+      hoursEl?.classList.remove('hours-no');
+      return;
+    }
+    hoursEl.classList.toggle('hours-no', hoursEl.value === 'No');
+  }
+
   function setCompletenessState(row) {
     const person = readRowPerson(row);
     COMPLETENESS_CLASSES.forEach((cls) => row.classList.remove(cls));
@@ -284,6 +294,7 @@ export function createReportsEditor(options) {
 
   function refreshRowVisuals(row) {
     applyPrivilegeChrome(row);
+    applyHoursChrome(row);
     setCompletenessState(row);
   }
 
