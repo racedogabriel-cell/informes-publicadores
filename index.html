@@ -10,12 +10,14 @@
     <link rel="stylesheet" href="css/variables.css" />
     <link rel="stylesheet" href="css/layout.css" />
     <link rel="stylesheet" href="css/components.css" />
-    <link rel="stylesheet" href="css/app.css" />
+    <link rel="stylesheet" href="css/app.css?v=35" />
+    <link rel="stylesheet" href="css/encargados.css?v=27" />
+    <link rel="stylesheet" href="css/personas-layout.css?v=1" />
     <title>Informes de publicadores</title>
   </head>
   <body>
     <div class="app-shell">
-      <aside class="sidebar" aria-label="Navegación principal">
+      <aside class="sidebar" id="app-sidebar" aria-label="Navegación principal">
         <a class="brand" href="#inicio" aria-label="Ir al inicio">
           <span class="brand-mark">IP</span>
           <span>Informes<br /><small>de publicadores</small></span>
@@ -23,9 +25,25 @@
         <nav class="navigation" id="primary-navigation"></nav>
         <div class="sidebar-footer">Datos protegidos y de uso interno</div>
       </aside>
+      <button
+        class="sidebar-backdrop"
+        id="sidebar-backdrop"
+        type="button"
+        aria-label="Cerrar menú"
+        tabindex="-1"
+      ></button>
       <main class="main-content">
         <header class="topbar">
-          <button class="menu-button" id="menu-button" type="button" aria-label="Abrir menú">☰</button>
+          <button
+            class="menu-button"
+            id="menu-button"
+            type="button"
+            aria-label="Abrir menú"
+            aria-controls="app-sidebar"
+            aria-expanded="false"
+          >
+            ☰
+          </button>
           <div>
             <p class="eyebrow" id="page-eyebrow"></p>
             <h1 id="page-title">Inicio</h1>

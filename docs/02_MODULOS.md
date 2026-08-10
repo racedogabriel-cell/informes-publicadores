@@ -33,27 +33,33 @@ No implementar funcionalidades de un módulo en estado **No iniciado** hasta con
 
 ## Personas
 
-**Objetivo:** Administrar el padrón maestro de personas (`hoja Personas`): única fuente de verdad sobre ID, nombre, grupo actual y activo.
+**Objetivo:** Administrar el padrón maestro de personas (`hoja Personas`): única fuente de verdad sobre ID, nombre, grupo actual, activo y datos de contacto/emergencia del padrón.
 
-**Estado actual:** No iniciado.
+**Estado actual:** En desarrollo.
 
 **Funcionalidades aprobadas (diseño de modelo):**
 
 - Existir como módulo oficial de navegación del Portal General.
-- Ser el canal del Encargado General para el padrón (altas, bajas lógicas vía Activo, cambios de nombre y grupo).
-- Campos mínimos del padrón: ID, Nombre, Grupo, Activo (Sí/No) — ver `docs/09_MODELO_DATOS_SHEETS.md`.
+- Ser el canal del Encargado General para el padrón (altas, bajas lógicas vía Activo, cambios de nombre y grupo, y datos de contacto/emergencia).
+- Campos del padrón: ID, Nombre, Grupo, Activo (Sí/No), NumeroContacto, ContactoEmergencia, NombreEmergencia, RelacionEmergencia — ver `docs/09_MODELO_DATOS_SHEETS.md`.
+- Los datos de contacto/emergencia pertenecen al padrón; no al módulo Informes ni a las hojas de grupo del período.
+
+**En este sprint (UI + API padrón):**
+
+- Listado real desde `action=personas`.
+- Alta, edición, activar/desactivar (baja lógica).
+- Búsqueda por nombre y filtros Todos / Activos / Inactivos / Grupo.
 
 **Funcionalidades pendientes:**
 
-- Especificación funcional de UI aprobada para implementación.
-- Implementación conforme a esa especificación.
-- Integración Apps Script de lectura/escritura del padrón (distinta del guardado de encargados).
+- Cerrar el módulo hasta estado **Terminado** (auditoría de UX y despliegue Apps Script).
+- Especificación formal adicional si se amplía el alcance.
 
 **Funcionalidades fuera de alcance:**
 
-- Cualquier implementación del módulo sin especificación funcional de UI / sprint aprobado.
+- DELETE físico del padrón.
 - Uso de `localStorage` como padrón.
-- Exposición de datos sensibles no contemplados en una especificación aprobada.
+- Exposición de contacto/emergencia en `action=reports` o Portal Encargados.
 - Edición del padrón por encargados de grupo.
 - Modificar el `Historial` al cambiar nombre o grupo.
 
@@ -68,7 +74,7 @@ No implementar funcionalidades de un módulo en estado **No iniciado** hasta con
 **Funcionalidades aprobadas:**
 
 - Consultar el endpoint de Apps Script (`action=reports`).
-- Consolidar los datos de `Grupo 1` y `Grupo 2` (período abierto).
+- Consolidar los datos de las hojas SheetKey `Grupo {ID}` del período abierto.
 - Filtrar entre los dos meses anteriores y el mes actual.
 - Mostrar cantidad de personas, informes completos y pendientes.
 - Operar en solo lectura.
@@ -93,7 +99,7 @@ No implementar funcionalidades de un módulo en estado **No iniciado** hasta con
 
 ## Períodos
 
-**Objetivo:** Gestionar el ciclo mensual: abrir y cerrar período, regenerar `Grupo 1`/`Grupo 2` desde `Personas`, copiar al `Historial` y preparar el siguiente período.
+**Objetivo:** Gestionar el ciclo mensual: abrir y cerrar período, regenerar hojas SheetKey desde `Personas`, copiar al `Historial` y preparar el siguiente período.
 
 **Estado actual:** En desarrollo.
 

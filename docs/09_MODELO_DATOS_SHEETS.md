@@ -13,20 +13,22 @@ Documento normativo del **modelo de datos aprobado** de la planilla.
 | Concepto | Hoja(s) | Rol |
 |---|---|---|
 | **Estado global del sistema** | `Sistema` | Única fuente de verdad del período vigente y su estado. |
-| **Padrón de personas (maestro)** | `Personas` | Única fuente de verdad sobre quiénes existen, a qué grupo pertenecen y si están activos. |
-| **Período abierto (trabajo)** | `Grupo 1`, `Grupo 2` | Espacio de trabajo del mes en curso. No son padrón ni autoridad del período. |
-| **Historial** | `Historial` | Fotografías inmutables de períodos cerrados. |
+| **Padrón de personas (maestro)** | `Personas` | Única fuente de verdad sobre quiénes existen, a qué grupo pertenecen (`GrupoID`), si están activos y sus datos de contacto/emergencia del padrón. |
+| **Catálogo de grupos** | `Grupos` | Maestro de grupos (ID, Nombre, Color, Activo). Administrado desde Configuración. |
+| **Período abierto (trabajo)** | SheetKey `Grupo {ID}` | Espacio de trabajo del mes en curso. No son padrón ni autoridad del período. |
+| **Historial** | `Historial` | Fotografías inmutables de períodos cerrados (GrupoID + nombre congelado). |
 
 ```text
 Sistema (PeriodoActivo / EstadoPeriodo / …)
         │
         │  gobierna qué período está vigente
         ▼
-Personas (maestro) ──abrir período / regenerar──► Grupo 1 / Grupo 2
-                                                        │
-                                                        │ cerrar período
-                                                        ▼
-                                                   Historial (inmutable)
+Personas (maestro) + Grupos (catálogo)
+        ──abrir período / regenerar──► Grupo {ID} (SheetKey)
+                                              │
+                                              │ cerrar período
+                                              ▼
+                                         Historial (inmutable)
 ```
 
 ---
@@ -64,11 +66,11 @@ Una vez implementada esta arquitectura:
 2. Al **abrir** un período: se actualizan `PeriodoActivo`, `EstadoPeriodo = Abierto`, `FechaApertura`; se limpia o anula `FechaCierre` según la regla de implementación.
 3. Al **cerrar** un período: `EstadoPeriodo = Cerrado`, se registra `FechaCierre`; el valor de `PeriodoActivo` permanece como el período recién cerrado hasta la próxima apertura (o según se fije en la implementación, sin contradecir que `Sistema` es la autoridad).
 4. `Version` se incrementa solo cuando cambie el contrato de esta hoja, no en cada apertura/cierre.
-5. Ningún cliente debe tratar `Grupo 1!B3` / `Grupo 2!B3` como fuente de verdad del período una vez migrado a `Sistema`.
+5. Ningún cliente debe tratar `B3` de las hojas SheetKey como fuente de verdad del período una vez migrado a `Sistema`.
 
 ### 2.5 Relación con `B3` (hojas de grupo)
 
-- `B3` en `Grupo 1` / `Grupo 2` puede seguir existiendo como **espejo operativo** o ayuda visual en la planilla.
+- `B3` en hojas SheetKey `Grupo {ID}` puede seguir existiendo como **espejo operativo** o ayuda visual en la planilla.
 - Tras la migración, `B3` **no** es autoridad: si diverge de `Sistema`, prevalece `Sistema`.
 - La sincronización de `B3` (si se mantiene) la realiza el módulo Períodos al abrir/cerrar, no los portales por inferencia.
 
@@ -91,23 +93,32 @@ Una hoja de configuración con pares campo/valor (columna A = clave, columna B =
 - Durante la transición operativa puede editarse en Sheets solo por el Encargado General.
 - Los **encargados de grupo nunca** editan esta hoja (ni por Portal Encargados ni por Sheets).
 
-### 3.3 Campos mínimos
+### 3.3 Campos del padrón
 
-| Campo | Descripción |
-|---|---|
-| `ID` | Identificador estable de la persona. |
-| `Nombre` | Nombre vigente en el padrón. |
-| `Grupo` | Grupo actual: `Grupo 1` o `Grupo 2`. |
-| `Activo` | `Sí` / `No`. |
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `ID` | texto | Identificador estable de la persona. |
+| `Nombre` | texto | Nombre vigente en el padrón. |
+| `Grupo` | texto | **GrupoID** del catálogo (`Grupos!A`). La API expone también nombre/color resueltos. |
+| `Activo` | texto | `Sí` / `No`. |
+| `NumeroContacto` | texto | Teléfono u otro contacto de la persona. Se conserva el valor tal cual (espacios, guiones, formato); **no** convertir a número. |
+| `ContactoEmergencia` | texto | Teléfono u otro contacto de emergencia. Misma regla de texto literal. |
+| `NombreEmergencia` | texto | Nombre de la persona de contacto de emergencia. |
+| `RelacionEmergencia` | texto | Relación con la persona de emergencia (p. ej. Hermana, Amiga). |
+
+Campos vacíos se dejan en blanco. No usar marcadores tipo `N/A`, `-`, `Desconocido` o `Sin datos`.
 
 ### 3.4 Reglas
 
 - Un `ID` identifica a una sola persona a lo largo del tiempo.
 - Cambiar `Nombre` o `Grupo` en el padrón afecta solo períodos **futuros** (al regenerar las hojas de trabajo).
-- `Activo = No`: la persona **no** se incluye al regenerar `Grupo 1` / `Grupo 2` para un nuevo período.
-- Esta hoja **no** almacena privilegio, horas, estudios ni comentarios del mes.
+- `Activo = No`: la persona **no** se incluye al regenerar hojas SheetKey para un nuevo período.
+- Los campos de contacto/emergencia **no** se copian a las hojas SheetKey al abrir un período.
+- Esta hoja **no** almacena privilegio, horas, estudios ni comentarios del mes (esos viven en el período abierto / Historial).
+- `NumeroContacto`, `ContactoEmergencia`, `NombreEmergencia` y `RelacionEmergencia` son datos del **padrón**, no del informe mensual.
+- Apps Script **no** debe exponer estos campos en el contrato de Informes (`action=reports`) ni en el guardado de encargados.
 
-### 3.5 Layout propuesto (referencia)
+### 3.5 Layout de la hoja
 
 | Columna | Campo |
 |---|---|
@@ -115,12 +126,16 @@ Una hoja de configuración con pares campo/valor (columna A = clave, columna B =
 | B | Nombre |
 | C | Grupo |
 | D | Activo |
+| E | NumeroContacto |
+| F | ContactoEmergencia |
+| G | NombreEmergencia |
+| H | RelacionEmergencia |
 
-Detalle de fila de encabezados y validaciones de hoja: a fijar en la especificación del módulo Personas / implementación del módulo Períodos.
+Las columnas E–H deben tratarse como **texto** en Sheets (evitar coerción numérica de teléfonos).
 
 ---
 
-## 4. Hojas `Grupo 1` y `Grupo 2` (período abierto)
+## 4. Hojas SheetKey `Grupo {ID}` (período abierto)
 
 ### 4.1 Propósito
 
@@ -153,7 +168,7 @@ Al abrir un período, el sistema (módulo Períodos → Apps Script):
 1. Actualiza la hoja `Sistema` (`PeriodoActivo`, `EstadoPeriodo = Abierto`, `FechaApertura`, etc.).
 2. Lee `Personas`.
 3. Incluye solo filas con `Activo = Sí`.
-4. Distribuye por `Grupo` en `Grupo 1` o `Grupo 2`.
+4. Distribuye por `GrupoID` en la hoja SheetKey `Grupo {ID}` correspondiente.
 5. Escribe A–B desde el padrón.
 6. Deja C–F vacíos (listos para la carga del período).
 7. Si se mantiene el espejo, alinea `B3` de ambas hojas al `PeriodoActivo` de `Sistema`.
@@ -200,15 +215,15 @@ Una fila por persona por período cerrado. Columnas en el orden de los campos m�
 
 ### Ejemplo
 
-1. **Agosto** (período abierto según `Sistema`): la persona está en `Personas` con `Grupo = Grupo 1` → aparece en hoja `Grupo 1`.
-2. Se **cierra Agosto** → se actualiza `Sistema` y se copia al `Historial` con `Grupo = Grupo 1`.
-3. En el padrón se cambia a `Grupo = Grupo 2`.
-4. Se **abre Septiembre** → `Sistema` pasa a Septiembre / Abierto; la persona regenera en hoja `Grupo 2`.
+1. **Agosto** (período abierto según `Sistema`): la persona está en `Personas` con `GrupoID = 1` → aparece en hoja `Grupo 1`.
+2. Se **cierra Agosto** → se actualiza `Sistema` y se copia al `Historial` con `GrupoID` + nombre congelado.
+3. En el padrón se cambia a otro `GrupoID` (p. ej. `2`).
+4. Se **abre Septiembre** → `Sistema` pasa a Septiembre / Abierto; la persona regenera en la hoja SheetKey de su nuevo grupo.
 
 **Resultado esperado:**
 
-- Agosto permanece en `Historial` como **Grupo 1**.
-- Septiembre aparece en el período de trabajo como **Grupo 2**.
+- Agosto permanece en `Historial` con el nombre congelado al cierre.
+- Septiembre aparece en el período de trabajo según el `GrupoID` vigente del padrón.
 - Nunca se modifica el historial.
 
 ---
@@ -230,8 +245,8 @@ Una fila por persona por período cerrado. Columnas en el orden de los campos m�
 |---|---|---|
 | `Sistema` | Estado global | Solo módulo Períodos → Apps Script |
 | `Personas` | Maestro | Solo Encargado General (módulo Personas / Sheets) |
-| `Grupo 1` | Trabajo del período | Encargados de grupo: solo C–F. Regeneración A–B: módulo Períodos |
-| `Grupo 2` | Trabajo del período | Igual que `Grupo 1` |
+| `Grupo {ID}` | Trabajo del período | Encargados de grupo: solo C–F. Regeneración A–B: módulo Períodos |
+| `Grupos` | Catálogo | Solo Admin vía Configuración / Apps Script |
 | `Historial` | Archivo inmutable | Solo el cierre de período (módulo Períodos → Apps Script) |
 
 Spreadsheet ID del proyecto: el ya configurado en Apps Script (sin cambio de planilla maestra en esta etapa documental).
@@ -257,7 +272,7 @@ Spreadsheet ID del proyecto: el ya configurado en Apps Script (sin cambio de pla
         ↓
 4. Cerrar período (módulo Períodos)
    - Actualizar Sistema (EstadoPeriodo=Cerrado, FechaCierre)
-   - Copiar fotografía completa de Grupo 1 y Grupo 2 → Historial
+   - Copiar fotografía completa de hojas SheetKey → Historial
    - No alterar filas ya existentes del Historial
         ↓
 5. Preparar siguiente período
@@ -277,7 +292,7 @@ Spreadsheet ID del proyecto: el ya configurado en Apps Script (sin cambio de pla
 
 | Módulo / portal | Efecto de este modelo |
 |---|---|
-| Informes | El período a mostrar se toma de `Sistema` (no se infiere de `B3`). Los datos de filas siguen viniendo de `Grupo 1` / `Grupo 2`. |
+| Informes | El período a mostrar se toma de `Sistema` (no se infiere de `B3`). Los datos de filas siguen viniendo de las hojas SheetKey. |
 | Portal Encargados | El mes/período de contexto se toma de `Sistema`. No edita `Sistema`. Guardado sigue limitado a C–F. |
 | Personas (módulo UI) | Administrará la hoja `Personas`. |
 | Períodos | Único escritor de `Sistema`; regenera grupos; archiva en `Historial`. |

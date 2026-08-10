@@ -18,7 +18,7 @@ Gestionar el ciclo de vida del período de informes:
 1. Abrir un período.
 2. Cerrar un período.
 3. Actualizar el estado global en la hoja `Sistema`.
-4. Generar las hojas `Grupo 1` y `Grupo 2` desde el padrón `Personas`.
+4. Generar las hojas SheetKey `Grupo {ID}` desde el padrón `Personas` (grupos activos del catálogo).
 5. Copiar la fotografía del período al `Historial`.
 6. Limpiar / preparar las hojas de trabajo para el siguiente período.
 
@@ -27,7 +27,7 @@ Gestionar el ciclo de vida del período de informes:
 ## 2. Fuera de alcance (etapa UI actual)
 
 - Apertura/cierre real sobre Google Sheets.
-- Escritura en `Sistema`, `Historial` o regeneración de `Grupo 1` / `Grupo 2`.
+- Escritura en `Sistema`, `Historial` o regeneración de hojas SheetKey del período.
 - Escritura definitiva de informes del Portal Encargados.
 - Edición del padrón (módulo **Personas**).
 - Consulta analítica del historial (Informes/Estadísticas en sprints futuros).
@@ -61,7 +61,7 @@ Campos iniciales (detalle en `docs/09_MODELO_DATOS_SHEETS.md` §2):
 
 | Acción | Descripción |
 |---|---|
-| Abrir período | Actualiza `Sistema` (`PeriodoActivo`, `EstadoPeriodo = Abierto`, `FechaApertura`); regenera `Grupo 1` y `Grupo 2` desde `Personas` (`Activo = Sí`), A–B desde padrón, C–F vacíos; alinea espejo `B3` si aplica. |
+| Abrir período | Actualiza `Sistema` (`PeriodoActivo`, `EstadoPeriodo = Abierto`, `FechaApertura`); regenera hojas SheetKey `Grupo {ID}` desde `Personas` (`Activo = Sí`), A–B desde padrón, C–F vacíos; alinea espejo `B3` si aplica. |
 | Cerrar período | Actualiza `Sistema` (`EstadoPeriodo = Cerrado`, `FechaCierre`); copia todas las filas del período de trabajo al `Historial`. |
 | Generar hojas de grupo | Materializa el padrón filtrado por grupo en las hojas de trabajo. |
 | Copiar a Historial | Append-only; no modifica filas históricas previas. |
@@ -75,7 +75,7 @@ Campos iniciales (detalle en `docs/09_MODELO_DATOS_SHEETS.md` §2):
 ```text
 Mantener Personas
       ↓
-Abrir período → actualizar Sistema → regenerar Grupo 1 / Grupo 2
+Abrir período → actualizar Sistema → regenerar hojas SheetKey Grupo {ID}
       ↓
 Carga de informes (Encargados) + consulta (Informes)
   (ambos leen período vigente desde Sistema)
@@ -117,7 +117,7 @@ Esas acciones son **distintas** del `doPost` de guardado de informes del Portal 
 
 ## 8. Criterios de aceptación (para cuando se implemente la apertura/cierre real)
 
-1. Abrir período actualiza `Sistema` y regenera `Grupo 1` / `Grupo 2` solo desde `Personas` activas.
+1. Abrir período actualiza `Sistema` y regenera hojas SheetKey solo desde `Personas` activas con grupo activo.
 2. Cerrar período actualiza `Sistema` y agrega al `Historial` una fila por persona del período, sin modificar filas previas.
 3. Informes y Portal Encargados obtienen el período vigente desde `Sistema`, no desde `B3`.
 4. Tras un cambio de grupo o nombre en el padrón, un período ya cerrado permanece intacto en `Historial`.

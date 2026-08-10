@@ -1,0 +1,76 @@
+/**
+ * Personas — anchos de tabla.
+ * Debe cargarse DESPUÉS de encargados.css para anular:
+ *   .encargados-table { width:100%; table-layout:fixed }
+ *   .col-name { width:36% }
+ */
+.personas-view table.personas-table.encargados-table {
+  width: 870px !important;
+  max-width: 100%;
+  table-layout: fixed !important;
+}
+
+.personas-view table.personas-table.encargados-table thead th {
+  color: var(--ink);
+  background: #e4efe8;
+  font-size: 0.7rem;
+  font-weight: 750;
+  letter-spacing: 0.03em;
+  text-align: left;
+}
+
+.personas-view table.personas-table col.personas-col-name,
+.personas-view table.personas-table .col-name {
+  width: 560px !important;
+}
+
+.personas-view table.personas-table col.personas-col-group,
+.personas-view table.personas-table .col-group {
+  width: 60px !important;
+}
+
+.personas-view table.personas-table col.personas-col-status,
+.personas-view table.personas-table .col-status {
+  width: 100px !important;
+}
+
+.personas-view table.personas-table col.personas-col-actions,
+.personas-view table.personas-table .col-actions {
+  width: 150px !important;
+}
+
+.personas-view table.personas-table .col-group,
+.personas-view table.personas-table .col-status,
+.personas-view table.personas-table .col-actions {
+  text-align: left;
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .personas-view table.personas-table.encargados-table {
+    width: 780px !important;
+  }
+
+  .personas-view table.personas-table col.personas-col-name,
+  .personas-view table.personas-table .col-name {
+    width: 480px !important;
+  }
+}
+
+@media (max-width: 700px) {
+  .personas-view table.personas-table.encargados-table {
+    width: 100% !important;
+    table-layout: auto !important;
+  }
+
+  .personas-view table.personas-table col.personas-col-name,
+  .personas-view table.personas-table .col-name,
+  .personas-view table.personas-table col.personas-col-group,
+  .personas-view table.personas-table .col-group,
+  .personas-view table.personas-table col.personas-col-status,
+  .personas-view table.personas-table .col-status,
+  .personas-view table.personas-table col.personas-col-actions,
+  .personas-view table.personas-table .col-actions {
+    width: auto !important;
+  }
+}

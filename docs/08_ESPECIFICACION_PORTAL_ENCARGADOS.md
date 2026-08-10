@@ -79,7 +79,7 @@ El encargado general seguirá consultando el consolidado en el **Portal General 
 
 ### Identificación del grupo
 
-El portal se abre **ya asociado a un grupo determinado** (`Grupo 1` o `Grupo 2`).
+El portal se abre **ya asociado a un grupo determinado** (`?grupoId=` estable; compat legacy `?grupo=`).
 
 El mecanismo definitivo de identificación (enlace, configuración de despliegue, u otro medio dentro del stack aprobado) **se definirá más adelante**.  
 En esta especificación solo se establece que el encargado **no** selecciona el grupo en la interfaz.
@@ -355,7 +355,7 @@ El mismo proyecto Apps Script atiende:
 
 1. Parsear el cuerpo de la solicitud.
 2. Validar que la acción corresponda al guardado del grupo del Portal Encargados.
-3. Validar `grupo` ∈ {`Grupo 1`, `Grupo 2`}.
+3. Validar `grupoId` (o `grupo` legacy) contra el catálogo `Grupos` y resolver SheetKey `Grupo {ID}`.
 4. Abrir la planilla y la pestaña del grupo.
 5. Aplicar controles de contexto necesarios (p. ej. consistencia de `mes` con `B3` según la regla definida para el caso).
 6. Para **cada persona** del payload, de forma independiente:
@@ -392,7 +392,7 @@ Modelo de datos completo: `docs/09_MODELO_DATOS_SHEETS.md`.
 ### 9.1 Planilla compartida
 
 - Mismo Spreadsheet ID del proyecto.
-- El Portal Encargados opera solo sobre la hoja de su grupo en el **período abierto** (`Grupo 1` o `Grupo 2`).
+- El Portal Encargados opera solo sobre la hoja SheetKey de su grupo en el **período abierto**.
 - No lee ni escribe `Personas` ni `Historial`.
 
 ### 9.2 Layout del período abierto

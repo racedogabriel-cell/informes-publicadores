@@ -10,14 +10,13 @@
     <link rel="stylesheet" href="../css/layout.css" />
     <link rel="stylesheet" href="../css/components.css" />
     <link rel="stylesheet" href="../css/app.css" />
-    <link rel="stylesheet" href="../css/encargados.css?v=13" />
+    <link rel="stylesheet" href="../css/encargados.css?v=29" />
     <title>Portal Encargados</title>
   </head>
   <body class="encargados-body">
     <div class="encargados-shell">
       <header class="encargados-topbar">
         <div class="encargados-brand">
-          <span class="brand-mark">PE</span>
           <div>
             <h1>Carga de informes</h1>
           </div>
@@ -25,7 +24,7 @@
 
         <div class="encargados-toolbar" aria-label="Contexto y estado">
           <div class="encargados-meta">
-            <span class="encargados-meta-chip">
+            <span class="encargados-meta-chip" id="context-grupo-chip">
               <span class="encargados-meta-label">Grupo</span>
               <strong id="context-grupo">—</strong>
             </span>
@@ -36,7 +35,7 @@
           </div>
           <div id="save-indicator" class="save-indicator" data-state="saved" role="status" aria-live="polite">
             <span class="save-indicator-dot" aria-hidden="true"></span>
-            <span class="save-indicator-text">Todos los cambios guardados</span>
+            <span class="save-indicator-text">Guardado</span>
             <button type="button" class="save-indicator-retry" id="save-indicator-retry" hidden>Reintentar</button>
           </div>
         </div>
@@ -44,6 +43,6 @@
 
       <main class="encargados-main" id="encargados-app"></main>
     </div>
-    <script type="module" src="./js/app.js?v=17"></script>
+    <script type="module" src="./js/app.js?v=24"></script>
   </body>
 </html>

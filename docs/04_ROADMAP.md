@@ -18,9 +18,9 @@ Alcance aprobado: consulta de solo lectura desde Apps Script, consolidación de 
 
 ## Personas
 
-**Estado:** No iniciado.
+**Estado:** En desarrollo.
 
-Módulo oficial del padrón maestro (`Personas`). Diseño de modelo en `docs/09_MODELO_DATOS_SHEETS.md`. Sin especificación de UI / sprint de implementación.
+ABM del padrón (`Personas`) en Portal General: listado, alta, edición, activar/desactivar, búsqueda y filtros. API: `action=personas` + POST create/update/setActivo.
 
 ## Períodos
 

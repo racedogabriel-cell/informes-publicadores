@@ -46,6 +46,21 @@ function formatTimestamp(value) {
   );
 }
 
+/** Conteo dinámico desde gruposList (preferido) o mapa grupos. */
+function formatGruposCountsLine(result) {
+  if (Array.isArray(result?.gruposList) && result.gruposList.length) {
+    return result.gruposList
+      .map((g) => `${g.nombre || g.sheetKey || g.id}: ${g.count ?? '—'}`)
+      .join(' · ');
+  }
+  if (result?.grupos && typeof result.grupos === 'object') {
+    return Object.entries(result.grupos)
+      .map(([name, count]) => `${name}: ${count}`)
+      .join(' · ');
+  }
+  return '';
+}
+
 function isOpenEstado(estado) {
   return isEstadoAbierto(estado);
 }
@@ -102,7 +117,7 @@ export function bindPeriods() {
       const activeLabel =
         root.querySelector('.periodos-active-label')?.textContent?.trim() || 'el período actual';
       const confirmed = window.confirm(
-        `¿Cerrar ${activeLabel}?\n\nSe copiarán los informes a Historial y Sistema pasará a CERRADO.\nLas hojas Grupo 1/2 no se limpian.\nEsta acción no se puede deshacer desde la app.`,
+        `¿Cerrar ${activeLabel}?\n\nSe copiarán los informes a Historial y Sistema pasará a CERRADO.\nLas hojas de grupo del período no se limpian.\nEsta acción no se puede deshacer desde la app.`,
       );
       if (!confirmed) return;
 
@@ -172,9 +187,10 @@ export function bindPeriods() {
       if (feedbackAfter) {
         feedbackAfter.hidden = false;
         feedbackAfter.dataset.tone = 'success';
-        const g1 = result.grupos?.['Grupo 1'] ?? '—';
-        const g2 = result.grupos?.['Grupo 2'] ?? '—';
-        feedbackAfter.textContent = `${result.message} Grupo 1: ${g1} · Grupo 2: ${g2}.`;
+        const countsLine = formatGruposCountsLine(result);
+        feedbackAfter.textContent = countsLine
+          ? `${result.message} ${countsLine}.`
+          : String(result.message || 'Período abierto correctamente.');
       }
     } catch (error) {
       if (feedback) {
@@ -230,13 +246,13 @@ function renderPeriodsScreen(root, system, lastResult) {
 
   root.innerHTML = `
     <section class="periodos-hero" aria-label="Período activo" data-has-open="${open ? 'true' : 'false'}">
-      <div>
+      <div class="periodos-hero-main">
         <p class="periodos-kicker">Período activo</p>
-        <h2 class="periodos-active-label">${escapeHtml(activeLabel)}</h2>
-        <p class="periodos-active-meta">
+        <div class="periodos-active-row">
+          <h2 class="periodos-active-label">${escapeHtml(activeLabel)}</h2>
           ${statusBadge(open ? 'Abierto' : 'Cerrado')}
-          <span class="muted">${open ? 'Listo para la carga de informes (mes vencido)' : 'No hay un período abierto'}</span>
-        </p>
+          <span class="periodos-active-hint muted">${open ? 'Listo para la carga de informes (mes vencido)' : 'No hay un período abierto'}</span>
+        </div>
         <p class="periodos-system-meta muted">
           Apertura: ${formatTimestamp(system?.FechaApertura)}
           · Cierre: ${formatTimestamp(system?.FechaCierre)}
@@ -257,10 +273,10 @@ function renderPeriodsScreen(root, system, lastResult) {
             aria-label="Clave del período a abrir (YYYY-MM, mes vencido)"
           />
         </label>
-        <button type="button" class="button" data-period-action="open" ${open ? 'disabled' : ''}>
+        <button type="button" class="button periodos-action-btn" data-period-action="open" ${open ? 'disabled' : ''}>
           Abrir nuevo período
         </button>
-        <button type="button" class="button button-secondary" data-period-action="close" ${open ? '' : 'disabled'}>
+        <button type="button" class="button button-secondary periodos-action-btn" data-period-action="close" ${open ? '' : 'disabled'}>
           Cerrar período
         </button>
       </div>
@@ -269,19 +285,19 @@ function renderPeriodsScreen(root, system, lastResult) {
     <p id="periodos-feedback" class="periodos-feedback" role="status" hidden></p>
 
     <section class="panel card periodos-list-panel" aria-label="Listado de períodos">
-      <div class="panel-head">
+      <div class="panel-head periodos-panel-head">
         <h2>Períodos</h2>
         <span class="muted">${periods.length ? periods.length + ' en Sistema' : 'Sin período registrado'}</span>
       </div>
-      <div class="table-wrap">
-        <table class="data-table periodos-table">
+      <div class="encargados-table-scroll periodos-table-scroll">
+        <table class="encargados-table periodos-table">
           <thead>
             <tr>
-              <th>Período</th>
-              <th>Estado</th>
-              <th>Activo</th>
-              <th>Apertura</th>
-              <th>Cierre</th>
+              <th class="col-name">Período</th>
+              <th class="col-status">Estado</th>
+              <th class="col-activo">Activo</th>
+              <th class="col-apertura">Apertura</th>
+              <th class="col-cierre">Cierre</th>
             </tr>
           </thead>
           <tbody>
@@ -292,11 +308,11 @@ function renderPeriodsScreen(root, system, lastResult) {
                       const isActive = item.status === 'Abierto';
                       return `
                         <tr class="${isActive ? 'is-active-period' : ''}">
-                          <td class="periodos-name">${escapeHtml(item.label)} <span class="muted">(${escapeHtml(item.id)})</span></td>
-                          <td>${statusBadge(item.status)}</td>
-                          <td>${isActive ? 'Sí' : 'No'}</td>
-                          <td>${formatTimestamp(item.openedAt)}</td>
-                          <td>${formatTimestamp(item.closedAt)}</td>
+                          <td class="col-name periodos-name" data-label="Período">${escapeHtml(item.label)} <span class="muted">(${escapeHtml(item.id)})</span></td>
+                          <td class="col-status" data-label="Estado">${statusBadge(item.status)}</td>
+                          <td class="col-activo" data-label="Activo">${isActive ? 'Sí' : 'No'}</td>
+                          <td class="col-apertura" data-label="Apertura">${formatTimestamp(item.openedAt)}</td>
+                          <td class="col-cierre" data-label="Cierre">${formatTimestamp(item.closedAt)}</td>
                         </tr>
                       `;
                     })
@@ -309,12 +325,15 @@ function renderPeriodsScreen(root, system, lastResult) {
       ${
         lastResult?.archived != null
           ? `<p class="periodos-note muted">Último cierre: ${escapeHtml(lastResult.archived)} registro(s) en Historial.</p>`
-          : lastResult?.grupos
-            ? `<p class="periodos-note muted">Última apertura: Grupo 1 = ${escapeHtml(lastResult.grupos['Grupo 1'])}, Grupo 2 = ${escapeHtml(lastResult.grupos['Grupo 2'])}.</p>`
-            : ''
+          : (() => {
+              const countsLine = formatGruposCountsLine(lastResult);
+              return countsLine
+                ? `<p class="periodos-note muted">Última apertura: ${escapeHtml(countsLine)}.</p>`
+                : '';
+            })()
       }
       <p class="periodos-note muted">
-        Cerrar período archiva Grupo 1/2 en Historial y marca Sistema como CERRADO. No limpia las hojas de trabajo ni abre el siguiente mes.
+        Cerrar período archiva las hojas de grupo en Historial y marca Sistema como CERRADO. No limpia las hojas de trabajo ni abre el siguiente mes.
       </p>
     </section>
   `;

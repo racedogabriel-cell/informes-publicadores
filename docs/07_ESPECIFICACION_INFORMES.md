@@ -55,7 +55,7 @@ Cada elemento de `informes` contiene:
 
 ### 2.3 Alcance de la lectura en Apps Script
 
-El conector lee las pestañas del **período de trabajo**: `Grupo 1` y `Grupo 2`.
+El conector lee las pestañas SheetKey del **período de trabajo** (`Grupo {ID}` según catálogo `Grupos` activo).
 
 **Arquitectura aprobada:** el período vigente se obtiene de la hoja `Sistema` (`PeriodoActivo` / `EstadoPeriodo`), no por inferencia desde `B3`. Ver `docs/09_MODELO_DATOS_SHEETS.md` §2.
 
@@ -266,7 +266,7 @@ La pantalla debe permitir:
 - mostrar error claro si la consulta falla;
 - mostrar fecha y hora de generación del JSON;
 - mostrar el mes informado;
-- consolidar Grupo 1 y Grupo 2 cuando correspondan al mes;
+- consolidar las hojas SheetKey del período cuando correspondan al mes;
 - mostrar totales según las reglas de esta especificación;
 - mostrar la tabla de informes recibidos;
 - actualizar los datos desde Google Sheets.

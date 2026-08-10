@@ -38,7 +38,7 @@ El detalle del sprint vigente está en `docs/06_SPRINT_ACTUAL.md`.
 - Cualquier fuente de datos distinta de Google Sheets.
 - Implementar funcionalidades sin especificación funcional aprobada.
 
-Los módulos Inicio, Personas, Períodos, Estadísticas y Configuración **existen y están aprobados** como parte de la arquitectura. Su estado actual es **No iniciado**: no se implementan funcionalidades de esos módulos hasta contar con especificación funcional aprobada (Períodos ya tiene especificación de diseño en `docs/10_ESPECIFICACION_PERIODOS.md`, pendiente de sprint de implementación).
+Los módulos Inicio, Personas, Períodos, Estadísticas y Configuración **existen y están aprobados** como parte de la arquitectura. Inicio, Estadísticas y Configuración están **No iniciado** (no implementar sin especificación/sprint). Personas y Períodos están **En desarrollo**.
 
 ## Tecnologías aprobadas
 
@@ -77,8 +77,8 @@ Google Sheets es la única fuente de datos del sistema.
 
 El modelo de datos aprobado separa tres conceptos (detalle en `docs/09_MODELO_DATOS_SHEETS.md`):
 
-- **`Personas`:** padrón maestro (única fuente de verdad sobre personas). Lo administra solo el Encargado General.
-- **`Grupo 1` / `Grupo 2`:** período actualmente abierto (no son padrón). Los encargados de grupo completan solo el informe del período (columnas C–F), preferentemente vía Portal Encargados cuando esté implementado.
+- **`Personas`:** padrón maestro (única fuente de verdad sobre personas: identificación, grupo, activo y contacto/emergencia del padrón). Lo administra solo el Encargado General.
+- **Hojas SheetKey `Grupo {ID}`:** período actualmente abierto (no son padrón). Los encargados de grupo completan solo el informe del período (columnas C–F), preferentemente vía Portal Encargados.
 - **`Historial`:** fotografías inmutables de períodos cerrados.
 
 Apps Script conecta ambos portales con la planilla.  

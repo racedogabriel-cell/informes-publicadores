@@ -1,14 +1,16 @@
 import { reportsView, bindReports, availablePeriods } from './informes.js';
 import { periodsView, bindPeriods } from './periodos.js';
+import { personasView, bindPersonas } from './personas.js';
+import { configuracionView, bindConfiguracion } from './configuracion.js';
 
 /** Estados oficiales de módulo. No implementar módulos marcados como "No iniciado". */
 const moduleStatus = {
   inicio: 'No iniciado',
-  personas: 'No iniciado',
+  personas: 'En desarrollo',
   informes: 'En desarrollo',
   periodos: 'En desarrollo',
   estadisticas: 'No iniciado',
-  configuracion: 'No iniciado',
+  configuracion: 'En desarrollo',
 };
 
 let reportPeriod = availablePeriods().at(-1).key;
@@ -26,7 +28,8 @@ const routes = {
   personas: {
     title: 'Personas',
     eyebrow: '',
-    view: () => pendingModuleView(moduleStatus.personas),
+    view: () => personasView(),
+    bind: () => bindPersonas(),
   },
   informes: {
     title: 'Informes',
@@ -52,7 +55,8 @@ const routes = {
   configuracion: {
     title: 'Configuración',
     eyebrow: '',
-    view: () => pendingModuleView(moduleStatus.configuracion),
+    view: () => configuracionView(),
+    bind: () => bindConfiguracion(),
   },
 };
 

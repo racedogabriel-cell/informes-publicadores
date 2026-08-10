@@ -21,7 +21,7 @@ Detalle: `docs/01_ARQUITECTURA.md`.
 | Módulo | Estado |
 |---|---|
 | Inicio | No iniciado |
-| Personas | No iniciado |
+| Personas | En desarrollo |
 | Informes | En desarrollo |
 | Estadísticas | No iniciado |
 | Configuración | No iniciado |

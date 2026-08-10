@@ -1,4 +1,4 @@
-const CACHE_NAME = 'informes-publicadores-v18';
+const CACHE_NAME = 'informes-publicadores-v41';
 const APP_SHELL = [
   './',
   './index.html',
@@ -7,6 +7,7 @@ const APP_SHELL = [
   './css/layout.css',
   './css/components.css',
   './css/app.css',
+  './css/encargados.css',
   './js/app.js',
   './js/router.js',
   './js/informes.js',
@@ -14,6 +15,11 @@ const APP_SHELL = [
   './js/period.js',
   './js/sheets.js',
   './js/config.js',
+  './js/configuracion.js',
+  './js/personas.js',
+  './js/report-status.js',
+  './js/reports-editor.js',
+  './js/reports-summary.js',
   './assets/icon.svg',
 ];
 

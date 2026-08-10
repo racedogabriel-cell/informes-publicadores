@@ -78,7 +78,7 @@ Que un módulo exista en la navegación no implica que deba implementarse.
 - Informes: En desarrollo.
 - Portal Encargados (lectura + canal POST dry-run): En desarrollo (escritura definitiva pendiente de auditoría).
 - Inicio: No iniciado.
-- Personas: No iniciado.
+- Personas: En desarrollo (ABM padrón Portal General).
 - Períodos: En desarrollo (UI de administración; sin acciones en Sheets).
 - Estadísticas: No iniciado.
 - Configuración: No iniciado.
@@ -125,7 +125,7 @@ La documentación aprobada prima sobre el código: ante divergencia, se adapta e
 
 Queda aprobado el modelo de datos con tres conceptos separados:
 
-1. **`Personas`:** padrón maestro (ID, Nombre, Grupo, Activo). Solo Encargado General.
+1. **`Personas`:** padrón maestro (ID, Nombre, Grupo, Activo, NumeroContacto, ContactoEmergencia, NombreEmergencia, RelacionEmergencia). Solo Encargado General. Contacto/emergencia = padrón; no Informes.
 2. **`Grupo 1` / `Grupo 2`:** período actualmente abierto (no padrón). A–B desde el padrón al regenerar; C–F = informe del período.
 3. **`Historial`:** fotografías inmutables al cerrar cada período.
 
@@ -153,3 +153,31 @@ Campos iniciales: `PeriodoActivo`, `EstadoPeriodo`, `FechaApertura`, `FechaCierr
 Una vez implementada esta arquitectura, ni el Portal General ni el Portal Encargados inferirán el período desde `B3` de las hojas de grupo. `B3` puede permanecer como espejo operativo alineado por Períodos, sin autoridad.
 
 Documento normativo: `docs/09_MODELO_DATOS_SHEETS.md` §2; impacto en Períodos: `docs/10_ESPECIFICACION_PERIODOS.md` §3.
+
+## 2026-08-08 — Campos de contacto/emergencia en padrón Personas
+
+Queda aprobado ampliar la hoja `Personas` con:
+
+- `NumeroContacto` (texto literal)
+- `ContactoEmergencia` (texto literal)
+- `NombreEmergencia` (texto)
+- `RelacionEmergencia` (texto)
+
+Reglas:
+
+- Permanecen en el padrón; no se copian a `Grupo 1`/`Grupo 2`.
+- No forman parte del contrato de Informes ni de `savePerson`/`saveGroup`.
+- Teléfonos se almacenan como texto sin normalizar formato (espacios/guiones se conservan).
+- No implica implementación de UI del módulo Personas.
+
+## 2026-08-08 — ABM Personas (Portal General)
+
+Queda aprobado el ABM del padrón en Portal General:
+
+- GET `action=personas`
+- POST `createPersona` / `updatePersona` / `setPersonaActivo`
+- Baja lógica vía `Activo` (sin DELETE físico)
+- ID generado en backend; inmutable en UI
+- Cambios de padrón no alteran Historial ni el período abierto hasta regenerar/abrir período
+
+Estado del módulo: **En desarrollo**.

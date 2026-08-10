@@ -1,23 +1,28 @@
 ﻿/* Portal Encargados â€” auto-save, completitud, privilegios, responsive. */
 
 :root {
-  --priv-publicador: #e8f4fa;
-  --priv-publicador-border: #b7d4e6;
-  --priv-auxiliar: #f7f1e3;
-  --priv-auxiliar-border: #e0d0b0;
-  --priv-regular: #e7f3ec;
-  --priv-regular-border: #b9d9c6;
-  --priv-inactivo: #f0ecf6;
-  --priv-inactivo-border: #d2c8e4;
-  --priv-none: #f1f3f2;
-  --priv-none-border: #cfd6d2;
+  --priv-publicador: #d4e8f6;
+  --priv-publicador-border: #6fa8cc;
+  --priv-publicador-text: #174a6b;
+  --priv-auxiliar: #f3e0b8;
+  --priv-auxiliar-border: #c4922f;
+  --priv-auxiliar-text: #6e4a08;
+  --priv-regular: #cfe8da;
+  --priv-regular-border: #5fa87f;
+  --priv-regular-text: #1a5a3c;
+  --priv-inactivo: #e4e0ed;
+  --priv-inactivo-border: #9b90b5;
+  --priv-inactivo-text: #433a5c;
+  --priv-none: #eef1ef;
+  --priv-none-border: #c5cdc8;
+  --priv-none-text: #66736b;
   --complete-dot: #2f9e6b;
   --editing-dot: #d69e2e;
   --empty-dot: #a8b2ac;
-  --field-enabled-bg: #fff;
-  --field-enabled-border: #cfe0d7;
-  --field-disabled-bg: #ecefec;
-  --field-disabled-border: #b9c3bd;
+  --field-enabled-bg: transparent;
+  --field-enabled-border: transparent;
+  --field-disabled-bg: transparent;
+  --field-disabled-border: transparent;
   --save-saved: #2f9e6b;
   --save-saving: #c49212;
   --save-error: #b42318;
@@ -86,13 +91,36 @@
 
 .encargados-meta-chip {
   display: inline-flex;
-  align-items: baseline;
+  align-items: center;
   gap: 5px;
   padding: 4px 9px;
   border-radius: 999px;
   background: var(--primary-soft);
   color: var(--ink);
   font-size: 0.8rem;
+}
+
+.encargados-meta-chip#context-grupo-chip {
+  border-radius: 6px;
+}
+
+.encargados-meta-chip#context-grupo-chip[data-has-color='true'] {
+  background: color-mix(in srgb, var(--grupo-color) 14%, #fff);
+  border: 1px solid color-mix(in srgb, var(--grupo-color) 36%, transparent);
+  box-shadow: inset 3px 0 0 var(--grupo-color);
+  padding-left: 11px;
+}
+
+.encargados-meta-chip#context-grupo-chip[data-has-color='true'] .encargados-meta-label {
+  color: color-mix(in srgb, var(--grupo-color) 55%, var(--muted));
+}
+
+.encargados-meta-chip#context-grupo-chip[data-has-color='true'] strong {
+  color: color-mix(in srgb, var(--grupo-color) 72%, #0a1210 28%);
+}
+
+.encargados-meta-swatch {
+  display: none !important;
 }
 
 .encargados-meta-label {
@@ -191,8 +219,8 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 10px 18px;
-  padding: 10px 14px;
+  gap: 6px 14px;
+  padding: 7px 10px;
   border-bottom: 1px solid var(--line);
   background: #f7faf8;
 }
@@ -200,29 +228,29 @@
 .progress-stats {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 20px;
+  gap: 4px 14px;
   align-items: baseline;
 }
 
 .progress-stat {
   display: inline-flex;
   align-items: baseline;
-  gap: 6px;
-  min-width: 5.5rem;
-  font-size: 0.78rem;
+  gap: 4px;
+  min-width: 4.5rem;
+  font-size: 0.72rem;
   color: var(--muted);
 }
 
 .progress-stat strong {
   color: var(--ink);
-  font-size: 1.05rem;
+  font-size: 0.92rem;
   font-weight: 750;
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
 
 .progress-stat-label {
-  font-size: 0.74rem;
+  font-size: 0.68rem;
 }
 
 .progress-stat.is-complete-stat strong {
@@ -234,10 +262,10 @@
 }
 
 .progress-track {
-  flex: 1 1 140px;
-  min-width: 100px;
-  max-width: 240px;
-  height: 6px;
+  flex: 1 1 120px;
+  min-width: 80px;
+  max-width: 200px;
+  height: 5px;
   border-radius: 999px;
   background: #e2eae5;
   overflow: hidden;
@@ -270,7 +298,7 @@
 
 .encargados-table {
   width: 100%;
-  border-collapse: separate;
+  border-collapse: collapse;
   border-spacing: 0;
   table-layout: fixed;
   font-size: 0.84rem;
@@ -280,10 +308,10 @@
   position: sticky;
   top: 0;
   z-index: 5;
-  padding: 8px 8px;
+  padding: 5px 6px;
   background: #eef5f1;
   color: var(--muted);
-  font-size: 0.68rem;
+  font-size: 0.66rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -299,18 +327,19 @@
 }
 
 .encargados-table tbody td {
-  padding: 5px 8px;
-  border-bottom: 1px solid #edf2ef;
+  padding: 2px 6px;
+  border-bottom: 1px solid #e8eee9;
   vertical-align: middle;
   background: #fff;
+  height: 1.9rem;
 }
 
 .encargados-table tbody tr:nth-child(even) td {
-  background: #fbfcfb;
+  background: #fafbfa;
 }
 
 .encargados-table tbody tr:hover td {
-  background: #f5f9f6;
+  background: #f3f7f4;
 }
 
 .encargados-table tbody tr:last-child td {
@@ -318,31 +347,31 @@
 }
 
 .col-id {
-  width: 48px;
+  width: 36px;
   text-align: center;
 }
 
 .col-id .id-value {
   font-variant-numeric: tabular-nums;
-  font-size: 0.78rem;
+  font-size: 0.72rem;
 }
 
 .col-name {
-  width: 34%;
+  width: 36%;
   text-align: left;
 }
 
 .col-privilege {
-  width: 118px;
+  width: 112px;
 }
 
 .col-hours {
-  width: 72px;
+  width: 64px;
   text-align: center;
 }
 
 .col-studies {
-  width: 56px;
+  width: 52px;
   text-align: center;
 }
 
@@ -358,12 +387,12 @@
   text-align: left;
 }
 
-/* Completitud: solo punto (gris / Ã¡mbar / verde) */
+/* Completitud: punto discreto */
 .completeness-dot {
   display: inline-block;
-  width: 8px;
-  height: 8px;
-  margin-right: 5px;
+  width: 6px;
+  height: 6px;
+  margin-right: 6px;
   border-radius: 50%;
   vertical-align: middle;
   background: var(--empty-dot);
@@ -381,16 +410,19 @@
   background: var(--complete-dot);
 }
 
-/* Campos */
+/* Controles integrados en la celda (no “cajitas”) */
 .encargados-table .field-input {
   width: 100%;
   box-sizing: border-box;
-  border-radius: 7px;
-  padding: 6px 8px;
+  margin: 0;
+  border-radius: 3px;
+  padding: 2px 5px;
   color: var(--ink);
-  font-size: 0.84rem;
-  line-height: 1.2;
-  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
+  font-size: inherit;
+  line-height: 1.25;
+  min-height: 0;
+  height: 1.55rem;
+  transition: border-color 0.12s ease, background 0.12s ease, box-shadow 0.12s ease;
 }
 
 .encargados-table .field-enabled {
@@ -405,22 +437,31 @@
   cursor: pointer;
 }
 
-.encargados-table .field-enabled:hover {
-  border-color: #a9cbbb !important;
+.encargados-table .field-enabled:hover:not(.field-privilege) {
+  border-color: #c5d5cc !important;
+  background: #fff !important;
 }
 
-.encargados-table .field-enabled:focus {
+.encargados-table .field-enabled:focus:not(.field-privilege) {
   outline: none;
   border-color: #7fbfa5 !important;
-  box-shadow: 0 0 0 3px rgb(21 94 75 / 12%);
+  background: #fff !important;
+  box-shadow: 0 0 0 2px rgb(21 94 75 / 10%);
+}
+
+.encargados-table select.field-privilege.field-enabled:hover,
+.encargados-table select.field-privilege.field-enabled:focus {
+  filter: brightness(0.97);
+  box-shadow: 0 0 0 2px rgb(21 94 75 / 10%);
+  outline: none;
 }
 
 .encargados-table .field-disabled,
 .encargados-table .field-input:disabled {
-  background: var(--field-disabled-bg) !important;
-  border: 1px dashed var(--field-disabled-border) !important;
+  background: transparent !important;
+  border: 1px solid transparent !important;
   color: #8b968f !important;
-  cursor: not-allowed !important;
+  cursor: default !important;
   opacity: 1;
   box-shadow: none !important;
 }
@@ -434,45 +475,78 @@
 .encargados-table .field-hours,
 .encargados-table .field-studies {
   text-align: center;
+  padding-left: 2px;
+  padding-right: 2px;
 }
 
-/* Privilegio: color visible del control (forzado) */
+/* Privilegio: chip compacto con contraste (edición y consulta) */
 .encargados-table select.field-privilege {
-  font-weight: 650;
-  text-align: left;
+  font-weight: 700;
+  font-size: 0.78rem;
+  text-align: center;
+  text-align-last: center;
   -webkit-appearance: none;
   appearance: none;
-  background-image: linear-gradient(45deg, transparent 50%, #66736b 50%),
-    linear-gradient(135deg, #66736b 50%, transparent 50%);
-  background-position: calc(100% - 12px) calc(50% - 2px), calc(100% - 7px) calc(50% - 2px);
-  background-size: 5px 5px, 5px 5px;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 9px) calc(50% - 1px), calc(100% - 5px) calc(50% - 1px);
+  background-size: 4px 4px, 4px 4px;
   background-repeat: no-repeat;
-  padding-right: 22px;
+  padding: 2px 16px 2px 5px;
+  height: 1.55rem;
 }
 
-.encargados-table select.field-privilege.privilege-none {
+.encargados-table span.field-privilege,
+.encargados-table .privilege-chip {
+  display: inline-block;
+  max-width: 100%;
+  box-sizing: border-box;
+  font-weight: 700;
+  font-size: 0.78rem;
+  line-height: 1.25;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: default;
+  border-radius: 3px;
+  padding: 2px 6px;
+  vertical-align: middle;
+}
+
+.encargados-table .field-privilege.privilege-none,
+.encargados-table .privilege-chip.privilege-none {
   background-color: var(--priv-none) !important;
-  border-color: var(--priv-none-border) !important;
+  border: 1px solid var(--priv-none-border) !important;
+  color: var(--priv-none-text) !important;
 }
 
-.encargados-table select.field-privilege.privilege-publicador {
+.encargados-table .field-privilege.privilege-publicador,
+.encargados-table .privilege-chip.privilege-publicador {
   background-color: var(--priv-publicador) !important;
-  border-color: var(--priv-publicador-border) !important;
+  border: 1px solid var(--priv-publicador-border) !important;
+  color: var(--priv-publicador-text) !important;
 }
 
-.encargados-table select.field-privilege.privilege-auxiliar {
+.encargados-table .field-privilege.privilege-auxiliar,
+.encargados-table .privilege-chip.privilege-auxiliar {
   background-color: var(--priv-auxiliar) !important;
-  border-color: var(--priv-auxiliar-border) !important;
+  border: 1px solid var(--priv-auxiliar-border) !important;
+  color: var(--priv-auxiliar-text) !important;
 }
 
-.encargados-table select.field-privilege.privilege-regular {
+.encargados-table .field-privilege.privilege-regular,
+.encargados-table .privilege-chip.privilege-regular {
   background-color: var(--priv-regular) !important;
-  border-color: var(--priv-regular-border) !important;
+  border: 1px solid var(--priv-regular-border) !important;
+  color: var(--priv-regular-text) !important;
 }
 
-.encargados-table select.field-privilege.privilege-inactivo {
+.encargados-table .field-privilege.privilege-inactivo,
+.encargados-table .privilege-chip.privilege-inactivo {
   background-color: var(--priv-inactivo) !important;
-  border-color: var(--priv-inactivo-border) !important;
+  border: 1px solid var(--priv-inactivo-border) !important;
+  color: var(--priv-inactivo-text) !important;
 }
 
 .encargados-table select.field-privilege.privilege-publicador,
@@ -480,10 +554,10 @@
 .encargados-table select.field-privilege.privilege-regular,
 .encargados-table select.field-privilege.privilege-inactivo,
 .encargados-table select.field-privilege.privilege-none {
-  background-image: linear-gradient(45deg, transparent 50%, #66736b 50%),
-    linear-gradient(135deg, #66736b 50%, transparent 50%);
-  background-position: calc(100% - 12px) calc(50% - 2px), calc(100% - 7px) calc(50% - 2px);
-  background-size: 5px 5px, 5px 5px;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 9px) calc(50% - 1px), calc(100% - 5px) calc(50% - 1px);
+  background-size: 4px 4px, 4px 4px;
   background-repeat: no-repeat;
 }
 
@@ -498,11 +572,11 @@
   }
 
   .col-name {
-    width: 30%;
+    width: 34%;
   }
 
   .col-privilege {
-    width: 110px;
+    width: 108px;
   }
 
   .progress-stat {
@@ -519,8 +593,10 @@
   }
 
   .save-indicator {
-    font-size: 0.7rem;
-    padding: 3px 7px;
+    font-size: 0.68rem;
+    padding: 2px 6px;
+    gap: 4px;
+    min-height: 24px;
   }
 
   .encargados-progress {
@@ -567,22 +643,47 @@
 
   .encargados-table tbody tr {
     display: grid;
+    /* ch medido a 0.72rem (tipografía de Privilegio); NOMBRE restaura su tamaño abajo */
+    font-size: 0.72rem;
+    font-weight: 700;
+    /* "Publicador" = 10ch + padding/caret mínimos */
+    --col-priv: calc(10ch + 0.7rem);
+    /* "Sí"/"60" ≈ 2ch + padding */
+    --col-hours: calc(2.25ch + 0.45rem);
+    /* "Est."/"60" */
+    --col-studies: calc(2.6ch + 0.4rem);
+    --col-plus: 1.4rem;
     grid-template-columns:
       auto
-      minmax(0, 1.45fr)
-      minmax(3.1rem, 0.7fr)
-      minmax(2.6rem, 0.55fr);
-    grid-template-areas:
-      'id name name name'
-      'priv priv hours studies'
-      'comments comments comments comments';
-    column-gap: 5px;
-    row-gap: 4px;
-    margin: 4px 5px;
-    padding: 5px 6px;
+      minmax(0, 1fr)
+      var(--col-priv)
+      var(--col-hours)
+      var(--col-studies)
+      var(--col-plus);
+    grid-template-areas: 'id name priv hours studies comments';
+    column-gap: 3px;
+    row-gap: 3px;
+    margin: 3px 4px;
+    padding: 3px 4px;
     border: 1px solid var(--line);
-    border-radius: 8px;
+    border-radius: 6px;
     background: #fff;
+    align-items: center;
+  }
+
+  /* Sin comentario: 1 línea con +. Con texto o editando: 2 líneas, sin marcador */
+  .encargados-table tbody tr:has(.field-comments:focus),
+  .encargados-table tbody tr:has(.field-comments:not(:placeholder-shown)) {
+    grid-template-columns:
+      auto
+      minmax(0, 1fr)
+      var(--col-priv)
+      var(--col-hours)
+      var(--col-studies);
+    grid-template-areas:
+      'id name priv hours studies'
+      'comments comments comments comments comments';
+    align-items: stretch;
   }
 
   .encargados-table tbody tr:nth-child(even),
@@ -598,6 +699,7 @@
     width: auto !important;
     text-align: left !important;
     min-width: 0;
+    height: auto;
   }
 
   .encargados-table tbody td::before {
@@ -606,22 +708,12 @@
 
   .encargados-table tbody td.col-id {
     grid-area: id;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 4px;
     align-self: center;
-  }
-
-  .encargados-table tbody td.col-id .completeness-dot {
-    width: 7px;
-    height: 7px;
-    margin-right: 0;
-    flex-shrink: 0;
+    font-weight: 650;
   }
 
   .encargados-table tbody td.col-id .id-value {
-    font-size: 0.76rem;
+    font-size: 0.72rem;
     font-weight: 650;
   }
 
@@ -629,84 +721,179 @@
     grid-area: name;
     align-self: center;
     min-width: 0;
+    font-size: 0.84rem;
+    font-weight: 700;
   }
 
-  .encargados-table tbody td.col-name .person-name,
+  .encargados-table tbody td.col-name .completeness-dot {
+    width: 6px;
+    height: 6px;
+    margin-right: 5px;
+    flex-shrink: 0;
+  }
+
+  .encargados-table tbody td.col-name.person-name,
   .encargados-table .person-name {
     display: block;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    font-size: 0.9rem;
+    font-size: 0.84rem;
     font-weight: 700;
     line-height: 1.15;
   }
 
   .encargados-table tbody td.col-privilege {
     grid-area: priv;
-    min-width: 0;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    justify-self: stretch;
   }
 
   .encargados-table tbody td.col-hours {
     grid-area: hours;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
   }
 
   .encargados-table tbody td.col-studies {
     grid-area: studies;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
   }
 
   .encargados-table tbody td.col-comments {
     grid-area: comments;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    justify-self: stretch;
+    position: relative;
   }
 
   .encargados-table .field-input {
     width: 100%;
-    min-height: 34px;
-    padding: 4px 6px;
-    font-size: 0.84rem;
-    border-radius: 6px;
-    line-height: 1.1;
+    min-height: 0;
+    height: 1.65rem;
+    padding: 2px 4px;
+    font-size: 0.8rem;
+    font-weight: 400;
+    border-radius: 3px;
+    line-height: 1.2;
+    box-sizing: border-box;
   }
 
+  /* Privilegio: 100% de la columna (= 10ch de "Publicador" + padding) */
   .encargados-table select.field-privilege {
-    min-height: 34px;
-    padding-top: 4px;
-    padding-bottom: 4px;
-    padding-right: 18px;
-    font-size: 0.78rem;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    field-sizing: fixed;
+    min-height: 0;
+    height: 1.65rem;
+    padding: 1px 0.65rem 1px 0.15rem !important;
+    font-size: 0.72rem;
+    font-weight: 700;
+    box-sizing: border-box;
+    background-position: calc(100% - 3px) calc(50% - 1px), calc(100% - 0px) calc(50% - 1px);
+    background-size: 3px 3px, 3px 3px;
   }
 
-  .encargados-table .field-hours,
+  .encargados-table select.field-privilege.privilege-publicador,
+  .encargados-table select.field-privilege.privilege-auxiliar,
+  .encargados-table select.field-privilege.privilege-regular,
+  .encargados-table select.field-privilege.privilege-inactivo,
+  .encargados-table select.field-privilege.privilege-none {
+    background-position: calc(100% - 3px) calc(50% - 1px), calc(100% - 0px) calc(50% - 1px);
+    background-size: 3px 3px, 3px 3px;
+  }
+
+  /* Horas: sin flecha en mobile; ancho de la columna del grid */
+  .encargados-table select.field-hours,
+  .encargados-table input.field-hours,
   .encargados-table .field-studies {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
     text-align: center;
-    padding-left: 2px;
-    padding-right: 2px;
-    font-size: 0.82rem;
+    padding: 1px !important;
+    font-size: 0.8rem;
+    font-weight: 650;
+    box-sizing: border-box;
+  }
+
+  .encargados-table select.field-hours {
+    -webkit-appearance: none;
+    appearance: none;
+    background-image: none !important;
+    text-indent: 0;
+    text-overflow: clip;
+  }
+
+  .encargados-table select.field-hours::-ms-expand {
+    display: none;
+  }
+
+  /* Comentario compacto "+" solo cuando está vacío (1ª línea) */
+  .encargados-table .field-comments {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    height: 1.65rem;
+    min-height: 0;
+    padding: 0;
+    font-size: 0.84rem;
+    font-weight: 700;
+    line-height: 1.65rem;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: clip;
+    box-sizing: border-box;
   }
 
   .encargados-table .field-comments:placeholder-shown {
-    min-height: 26px;
-    padding: 2px 8px;
-    font-size: 0.76rem;
-    font-style: italic;
-    color: #7d8a83 !important;
+    font-style: normal;
+    color: var(--primary) !important;
     border-style: dashed !important;
-    background: #f7f9f8 !important;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    background: #f3f8f5 !important;
   }
 
   .encargados-table .field-comments:placeholder-shown.field-disabled,
   .encargados-table .field-comments:placeholder-shown:disabled {
-    opacity: 0.7;
+    opacity: 0.55;
+    color: #8b968f !important;
   }
 
+  /* Con texto o en foco: campo completo en 2ª línea */
+  .encargados-table tbody tr:has(.field-comments:focus) .field-comments,
+  .encargados-table tbody tr:has(.field-comments:not(:placeholder-shown)) .field-comments,
+  .encargados-table .field-comments:focus,
   .encargados-table .field-comments:not(:placeholder-shown) {
-    min-height: 34px;
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    height: auto;
+    min-height: 1.85rem;
+    padding: 5px 8px;
+    font-size: 0.84rem;
+    font-weight: 400;
+    font-style: normal;
+    line-height: 1.25;
+    text-align: left;
     white-space: normal;
     overflow: visible;
     text-overflow: unset;
-    font-style: normal;
+    color: var(--ink) !important;
+    background: #fff !important;
+    border-style: solid !important;
+  }
+
+  .encargados-table tbody tr:has(.field-comments:focus) td.col-comments,
+  .encargados-table tbody tr:has(.field-comments:not(:placeholder-shown)) td.col-comments {
+    margin-top: 1px;
   }
 }

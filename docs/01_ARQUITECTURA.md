@@ -121,9 +121,10 @@ Los recursos comunes **no** unifican la navegación ni mezclan las experiencias 
 Responsabilidad: conector compartido entre ambos portales y Google Sheets.
 
 - Un mismo proyecto/endpoint atiende a Portal General y Portal Encargados.
-- Lectura: `doGet` / `action=reports` (período abierto: `Grupo 1` y `Grupo 2`; variantes futuras según se aprueben).
+- Lectura: `doGet` / `action=reports` (período abierto: hojas SheetKey `Grupo {ID}` del catálogo `Grupos`).
 - Escritura de informes: `doPost` para el guardado del Portal Encargados (procesamiento independiente por persona; solo C–F del período abierto).
-- Escritura de ciclo mensual (futuro, módulo Períodos): escribir `Sistema`, regenerar período de trabajo desde `Personas` y copiar cierres a `Historial` — distinta del guardado de encargados.
+- Escritura de ciclo mensual (módulo Períodos): escribir `Sistema`, regenerar período de trabajo desde `Personas` y copiar cierres a `Historial` — distinta del guardado de encargados.
+- Catálogo: `action=grupos` + ABM `createGrupo` / `updateGrupo` / `setGrupoActivo` (Configuración).
 - No debe exponer teléfonos, direcciones, contactos de emergencia ni otros datos sensibles ajenos al contrato de informes.
 
 La URL del endpoint se configura en el cliente (p. ej. `js/config.js` o equivalente compartido). El código fuente del conector está en `apps-script/`.
@@ -139,13 +140,14 @@ Modelo aprobado (detalle: `docs/09_MODELO_DATOS_SHEETS.md`):
 | Pestaña | Concepto |
 |---|---|
 | `Sistema` | Estado global: período vigente y estado del ciclo. Única fuente de verdad del período. |
-| `Personas` | Padrón maestro (ID, Nombre, Grupo, Activo). Solo Encargado General. |
-| `Grupo 1` / `Grupo 2` | Espacio de trabajo del período abierto (no padrón; no autoridad del período). |
-| `Historial` | Períodos cerrados; inmutable. |
+| `Personas` | Padrón maestro (ID, Nombre, Grupo=GrupoID, Activo, contactos). Solo Encargado General. Los campos de contacto/emergencia no se exponen en Informes ni se copian a hojas de grupo. |
+| `Grupos` | Catálogo (ID, Nombre, Color, Activo). Administrado desde Configuración. |
+| `Grupo {ID}` | Espacio de trabajo del período abierto (SheetKey; no padrón; no autoridad del período). |
+| `Historial` | Períodos cerrados; inmutable (congela GrupoID + nombre al cierre). |
 
-Período de trabajo (`Grupo 1` / `Grupo 2`):
+Período de trabajo (hojas SheetKey `Grupo {ID}`):
 
-- Celda `B3`: espejo opcional del período (no fuente de verdad una vez implementado `Sistema`).
+- Celda `B3`: espejo opcional del período (no fuente de verdad; prevalece `Sistema`).
 - Fila `5`: encabezados.
 - Datos desde la fila `7`.
 - Columnas A–B (`ID`, `Nombre`): provienen del padrón al regenerar el período.
@@ -170,12 +172,12 @@ El período vigente lo publican los clientes desde `Sistema` (vía Apps Script),
 2. El portal lee los datos de su grupo del **período abierto** vía Apps Script.
 3. El encargado edita solo C–F y pulsa **Guardar Grupo**.
 4. Apps Script procesa cada persona de forma independiente y responde el resultado.
-5. Los cambios del período abierto quedan en `Grupo 1` / `Grupo 2` y son visibles luego en Informes.
+5. Los cambios del período abierto quedan en las hojas SheetKey y son visibles luego en Informes.
 
 ### Ciclo mensual (Portal General → Períodos; futuro)
 
 1. El Encargado General mantiene `Personas`.
-2. Abre período → actualiza `Sistema` → regenera `Grupo 1` / `Grupo 2` desde el padrón.
+2. Abre período → actualiza `Sistema` → regenera hojas SheetKey `Grupo {ID}` desde el padrón.
 3. Tras la carga, cierra período → actualiza `Sistema` → copia fotografía a `Historial`.
 4. Prepara el siguiente período.
 
