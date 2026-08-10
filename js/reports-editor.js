@@ -52,8 +52,9 @@ function privilegeOptions(selected) {
   const current = selected ?? '';
   return PRIVILEGIOS.map((value) => {
     const label = value || '—';
+    const slug = privilegeSlug(value);
     const isSelected = value === current ? ' selected' : '';
-    return `<option value="${escapeHtml(value)}"${isSelected}>${escapeHtml(label)}</option>`;
+    return `<option class="privilege-${slug}" value="${escapeHtml(value)}"${isSelected}>${escapeHtml(label)}</option>`;
   }).join('');
 }
 

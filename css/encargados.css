@@ -549,6 +549,36 @@
   color: var(--priv-inactivo-text) !important;
 }
 
+/* Cada opción del desplegable conserva su color (no hereda el del valor actual) */
+.encargados-table select.field-privilege option {
+  font-weight: 700;
+}
+
+.encargados-table select.field-privilege option.privilege-none {
+  background-color: var(--priv-none);
+  color: var(--priv-none-text);
+}
+
+.encargados-table select.field-privilege option.privilege-publicador {
+  background-color: var(--priv-publicador);
+  color: var(--priv-publicador-text);
+}
+
+.encargados-table select.field-privilege option.privilege-auxiliar {
+  background-color: var(--priv-auxiliar);
+  color: var(--priv-auxiliar-text);
+}
+
+.encargados-table select.field-privilege option.privilege-regular {
+  background-color: var(--priv-regular);
+  color: var(--priv-regular-text);
+}
+
+.encargados-table select.field-privilege option.privilege-inactivo {
+  background-color: var(--priv-inactivo);
+  color: var(--priv-inactivo-text);
+}
+
 .encargados-table select.field-privilege.privilege-publicador,
 .encargados-table select.field-privilege.privilege-auxiliar,
 .encargados-table select.field-privilege.privilege-regular,
