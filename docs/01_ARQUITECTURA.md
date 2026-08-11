@@ -80,7 +80,7 @@ Responsabilidad: hospedar y servir el repositorio estático.
 Responsabilidad: consola de consulta del encargado general.
 
 - Entrada: `/` (p. ej. `index.html` en la raíz).
-- Navegación propia con los módulos oficiales del Portal General (Inicio, Personas, Informes, Períodos, Estadísticas, Configuración).
+- Navegación propia con los módulos oficiales del Portal General (Inicio, Personas, Informes, Períodos, Historial, Configuración).
 - El módulo Informes consulta Apps Script, consolida ambos grupos del **período abierto** y muestra el resultado en solo lectura.
 - El módulo Períodos (diseño aprobado; sin implementar) gestionará abrir/cerrar período, regenerar hojas de grupo desde `Personas` y archivar en `Historial`.
 - No incluye la experiencia ni las funciones de edición del Portal Encargados.

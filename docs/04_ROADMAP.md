@@ -28,11 +28,11 @@ ABM del padrón (`Personas`) en Portal General: listado, alta, edición, activar
 
 Módulo oficial del ciclo mensual. UI de administración en curso (`#periodos`); apertura/cierre real pendiente de auditoría.
 
-## Estadísticas
+## Historial
 
-**Estado:** No iniciado.
+**Estado:** En desarrollo.
 
-Módulo oficial aprobado. Sin especificación funcional aprobada para implementación.
+Consulta de solo lectura de informes de los últimos 24 meses desde la hoja `Historial` (con fallback al período activo).
 
 ## Configuración
 

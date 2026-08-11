@@ -287,7 +287,7 @@ Si no hay conexión, el endpoint responde error, el cuerpo no es JSON válido, o
 
 - Escritura o edición de informes desde la PWA.
 - Autenticación.
-- Módulos Inicio, Personas, Estadísticas y Configuración.
+- Módulos Inicio, Personas, Historial y Configuración.
 - Gráficos u otras estadísticas distintas de los contadores y estados definidos aquí.
 - Uso de `localStorage` u otras fuentes de datos.
 - Cambios a Apps Script o a la planilla de Google Sheets.

@@ -38,7 +38,7 @@ El detalle del sprint vigente está en `docs/06_SPRINT_ACTUAL.md`.
 - Cualquier fuente de datos distinta de Google Sheets.
 - Implementar funcionalidades sin especificación funcional aprobada.
 
-Los módulos Inicio, Personas, Períodos, Estadísticas y Configuración **existen y están aprobados** como parte de la arquitectura. Inicio, Estadísticas y Configuración están **No iniciado** (no implementar sin especificación/sprint). Personas y Períodos están **En desarrollo**.
+Los módulos Inicio, Personas, Períodos, Historial y Configuración **existen y están aprobados** como parte de la arquitectura. Inicio y Configuración están **No iniciado** (no implementar sin especificación/sprint). Personas, Períodos e Historial están **En desarrollo**.
 
 ## Tecnologías aprobadas
 
@@ -92,7 +92,7 @@ No utilizar `localStorage` como fuente de verdad.
 2. Personas
 3. Informes
 4. Períodos
-5. Estadísticas
+5. Historial
 6. Configuración
 
 Estos módulos existen como estructura oficial de navegación del **Portal General**. Que un módulo exista no significa que deba estar implementado.
@@ -144,7 +144,7 @@ Si existe una diferencia entre la documentación y el código, el código deber�
 - Dashboards demo.
 - KPIs ficticios.
 - Placeholders funcionales que simulen producto terminado.
-- Implementar funcionalidades de Inicio, Personas, Períodos, Estadísticas o Configuración sin especificación funcional aprobada y sin sprint que lo autorice.
+- Implementar funcionalidades de Inicio, Personas, Períodos, Historial o Configuración sin especificación funcional aprobada y sin sprint que lo autorice.
 - Código muerto o funciones sin uso incorporadas «por si acaso».
 - Archivos o experimentos ajenos al contrato.
 - Bases de datos, Firebase, SQL u otros backends no listados.

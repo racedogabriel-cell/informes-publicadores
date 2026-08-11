@@ -30,7 +30,7 @@ Gestionar el ciclo de vida del período de informes:
 - Escritura en `Sistema`, `Historial` o regeneración de hojas SheetKey del período.
 - Escritura definitiva de informes del Portal Encargados.
 - Edición del padrón (módulo **Personas**).
-- Consulta analítica del historial (Informes/Estadísticas en sprints futuros).
+- Consulta analítica del historial (Informes/Historial en sprints futuros).
 
 ---
 
@@ -133,4 +133,4 @@ Esas acciones son **distintas** del `doPost` de guardado de informes del Portal 
 | Personas | Mantiene el padrón que Períodos lee al regenerar. |
 | Informes | Consulta filas del período de trabajo; el período vigente lo toma de `Sistema`. |
 | Portal Encargados | Consume el período de trabajo; contexto de mes desde `Sistema`; no gestiona el ciclo. |
-| Estadísticas | Posible consumidor futuro del `Historial`. |
+| Historial | Consumidor de consulta de la hoja `Historial`. |

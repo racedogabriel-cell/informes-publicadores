@@ -90,7 +90,7 @@ No implementar funcionalidades de un módulo en estado **No iniciado** hasta con
 
 - Carga o edición de informes desde la PWA.
 - Persistencia local de informes.
-- Estadísticas históricas dentro de esta pantalla.
+- Estadísticas históricas dentro de esta pantalla (usar el módulo Historial).
 - Exposición de datos sensibles ajenos al contrato del endpoint.
 - Abrir/cerrar períodos (módulo Períodos).
 - Cualquier funcionalidad no listada en el alcance aprobado del sprint.
@@ -132,25 +132,23 @@ No implementar funcionalidades de un módulo en estado **No iniciado** hasta con
 
 ---
 
-## Estadísticas
+## Historial
 
-**Objetivo:** Módulo oficial de estadísticas.
+**Objetivo:** Consulta de solo lectura de informes archivados (y del período activo si aún no está en la hoja `Historial`).
 
-**Estado actual:** No iniciado.
+**Estado actual:** En desarrollo.
 
 **Funcionalidades aprobadas:**
 
-- Existir como módulo oficial de navegación.
-
-**Funcionalidades pendientes:**
-
-- Especificación funcional aprobada.
-- Implementación conforme a esa especificación.
+- Existir como módulo oficial de navegación (reemplaza el slot de Estadísticas).
+- Selector de los últimos 24 meses de calendario.
+- Listado con la misma estructura visual del módulo Informes, sin acciones de edición.
 
 **Funcionalidades fuera de alcance:**
 
-- Gráficos, históricos o tendencias implementados sin especificación funcional aprobada.
-- Placeholders que simulen estadísticas reales.
+- Crear, editar o eliminar informes desde este módulo.
+- Gráficos, tendencias o estadísticas agregadas.
+- Modificar filas de la hoja `Historial`.
 
 ---
 

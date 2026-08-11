@@ -2,10 +2,13 @@
  * Portal Encargados — auto-save por persona (savePerson).
  * Reutiliza js/reports-editor.js (misma lógica que Admin en modo edición).
  *
+ * Listado operativo: Personas activas del grupo (padrón) + merge C–F por ID
+ * desde action=reports. Materializa A–B en Grupo N solo al guardar si falta la fila.
+ *
  * Grupo (Fase 8): ?grupoId=1 (preferido) | legacy ?grupo=1 | ?grupo=Grupo%201
  */
 
-import { getMonthlyReports, getSystemState } from './sheets.js';
+import { getMonthlyReports, getPersonas, getSystemState } from './sheets.js';
 import { isEstadoAbierto, periodKeyToLabel } from './period.js';
 import {
   createReportsEditor,
@@ -28,6 +31,10 @@ function escapeHtml(value) {
     "'": '&#39;',
     '"': '&quot;',
   })[char]);
+}
+
+function isPersonaActiva(value) {
+  return value === true || value === 'Sí' || value === 'Si' || value === 'sí' || value === 'si';
 }
 
 function normalizeGrupoIdCandidate(raw) {
@@ -165,6 +172,56 @@ function findGroupInReports(groups, grupoId) {
   return (groups || []).find((item) => String(item.grupoId || '').trim() === id) || null;
 }
 
+/**
+ * Listado operativo = Personas activas del grupo.
+ * C–F se cruzan por ID desde action=reports (hoja Grupo N), sin materializar al cargar.
+ */
+function buildPeopleFromPadron(grupoId, personas, groupFromReports) {
+  const id = String(grupoId || '').trim();
+  const reportById = new Map();
+  (groupFromReports?.informes || []).forEach((row) => {
+    const personId = String(row?.id || '').trim();
+    if (personId) reportById.set(personId, row);
+  });
+
+  const roster = (personas || [])
+    .filter((person) => {
+      if (!isPersonaActiva(person?.activo)) return false;
+      if (String(person?.grupoId || '').trim() !== id) return false;
+      return Boolean(String(person?.id || '').trim() && String(person?.nombre || '').trim());
+    })
+    .slice()
+    .sort((a, b) =>
+      String(a.nombre || '').localeCompare(String(b.nombre || ''), 'es', { sensitivity: 'base' }),
+    );
+
+  const grupoNombre =
+    String(groupFromReports?.grupo || '').trim() ||
+    String(roster[0]?.grupoNombre || roster[0]?.grupo || '').trim() ||
+    `Grupo ${id}`;
+  const color =
+    String(groupFromReports?.color || '').trim() ||
+    String(roster[0]?.grupoColor || '').trim() ||
+    '';
+
+  const people = roster.map((person) => {
+    const report = reportById.get(String(person.id).trim()) || {};
+    return seedPersonFromApi({
+      id: person.id,
+      nombre: person.nombre,
+      privilegio: report.privilegio || '',
+      horas: report.horas || '',
+      estudios: report.estudios || '',
+      comentarios: report.comentarios || '',
+      grupo: grupoNombre,
+      grupoId: id,
+      grupoColor: color,
+    });
+  });
+
+  return { people, grupoNombre, color };
+}
+
 async function loadGroup(grupoId) {
   const root = document.querySelector('#encargados-app');
   if (!root) return;
@@ -176,10 +233,17 @@ async function loadGroup(grupoId) {
   showStatus('Cargando informes…');
   setSaveIndicator('saving', 'Cargando...');
 
-  const [system, data] = await Promise.all([getSystemState(), getMonthlyReports()]);
+  const [system, data, personasData] = await Promise.all([
+    getSystemState(),
+    getMonthlyReports(),
+    getPersonas(),
+  ]);
   if (!data) throw new Error('El conector de Apps Script no está configurado.');
   if (data.error) throw new Error(String(data.error));
   if (system?.error) throw new Error(String(system.error || system.message));
+  if (personasData?.ok === false || personasData?.error) {
+    throw new Error(String(personasData.error || personasData.message || 'No se pudo leer Personas.'));
+  }
 
   const periodo = String(system?.PeriodoActivo || '').trim();
   if (!periodo) {
@@ -192,26 +256,22 @@ async function loadGroup(grupoId) {
   }
 
   const group = findGroupInReports(data.groups, grupoId);
-  if (!group) {
+  const { people, grupoNombre, color } = buildPeopleFromPadron(
+    grupoId,
+    personasData?.personas || [],
+    group,
+  );
+
+  // Si no hay hoja de grupo en reports ni personas del padrón, el grupo no es operable.
+  if (!group && !people.length) {
     throw new Error(
       `No se encontró el grupo ID ${grupoId} en el período abierto (¿existe y está activo?).`,
     );
   }
 
-  const grupoNombre = String(group.grupo || `Grupo ${grupoId}`);
-  const color = String(group.color || '');
-  const people = (group.informes || [])
-    .filter((person) => person.id && person.nombre)
-    .map((person) =>
-      seedPersonFromApi({
-        ...person,
-        grupo: grupoNombre,
-        grupoId: String(group.grupoId || grupoId),
-      }),
-    );
   const mesLabel = periodKeyToLabel(periodo);
   sessionContext = {
-    grupoId: String(group.grupoId || grupoId),
+    grupoId: String(group?.grupoId || grupoId),
     grupo: grupoNombre,
     color,
     mes: mesLabel,

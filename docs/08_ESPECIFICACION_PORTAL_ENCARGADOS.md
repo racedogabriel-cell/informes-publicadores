@@ -30,7 +30,7 @@ Google Sheets
 ### Separación de experiencias
 
 - El Portal Encargados tiene navegación y UX propias.
-- **No** muestra módulos del Portal General (Inicio, Personas, Informes, Períodos, Estadísticas, Configuración).
+- **No** muestra módulos del Portal General (Inicio, Personas, Informes, Períodos, Historial, Configuración).
 - El Portal General **no** incluye funciones de edición del Portal Encargados.
 - No es una aplicación con perfiles: son dos entradas, no dos modos de la misma UI.
 

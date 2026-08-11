@@ -7,7 +7,7 @@
 /* Módulo Informes — META → PROGRESO → TABLA (solo lectura) */
 .informes-view {
   display: grid;
-  gap: 8px;
+  gap: var(--density-view-gap);
 }
 
 .informes-meta {
@@ -455,15 +455,15 @@
    (rompe table-cell y apila HORAS/EST./COMENTARIOS). */
 .informes-table td.cell-value {
   box-sizing: border-box;
-  height: 1.9rem;
-  padding: 2px 6px;
+  height: var(--density-row-h);
+  padding: var(--density-td-pad);
   color: var(--ink);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   font-size: inherit;
   font-weight: 400;
-  line-height: 1.25;
+  line-height: var(--density-line);
   font-variant-numeric: tabular-nums;
   vertical-align: middle;
 }
@@ -497,21 +497,25 @@
   text-align: center;
   /* Paridad con select.field-privilege (Alternativa A) */
   font-weight: 650;
-  height: 1.375rem;
-  line-height: 1.375rem;
+  height: var(--density-chip-h);
+  line-height: var(--density-chip-h);
   padding: 0 6px;
 }
 
 @media (max-width: 700px) {
-  .informes-view { gap: 6px; }
+  .informes-view { gap: var(--density-view-gap-sm); }
 
   .informes-view .informes-board.encargados-board {
     min-height: min(78vh, calc(100dvh - 10rem));
   }
 
-  /* Misma densidad de padding que Encargados en mobile */
-  .page-content:has(.informes-view) {
-    padding: 8px 6px 12px;
+  /* Misma densidad de padding que Historial/Informes en mobile */
+  .page-content:has(.informes-view),
+  .page-content:has(.personas-view),
+  .page-content:has(.periodos-view),
+  .page-content:has(.configuracion-view),
+  .page-content:has(.historial-view) {
+    padding: var(--density-page-pad-sm);
   }
 
   .informes-meta {
@@ -616,8 +620,8 @@
     font-size: 0.72rem;
     font-weight: 650;
     padding: 0 0.15rem;
-    height: 1.375rem;
-    line-height: 1.375rem;
+    height: var(--density-chip-h);
+    line-height: var(--density-chip-h);
     box-sizing: border-box;
   }
 
@@ -625,7 +629,7 @@
   .informes-table td.cell-value {
     display: block;
     width: 100%;
-    height: 1.55rem;
+    height: var(--density-row-h-sm);
     font-size: 0.8rem;
     font-weight: 650;
     padding: 0;
@@ -644,8 +648,8 @@
     color: var(--primary) !important;
     font-weight: 700;
     text-align: center;
-    height: 1.55rem;
-    line-height: 1.55rem;
+    height: var(--density-row-h-sm);
+    line-height: var(--density-row-h-sm);
     padding: 0;
     border-style: dashed;
     border-color: #cfe0d7;
@@ -673,8 +677,8 @@
   }
 }
 
-/* Módulo Períodos — densidad alineada a Informes/Personas */
-.periodos-view { display:grid; gap:8px; }
+/* Módulo Períodos — densidad alineada a Historial/Informes */
+.periodos-view { display:grid; gap:var(--density-view-gap); }
 .periodos-hero {
   display:flex;
   flex-wrap:wrap;
@@ -765,11 +769,13 @@
 .periodos-badge {
   display:inline-flex;
   align-items:center;
-  padding:2px 7px;
+  min-height:var(--density-chip-h);
+  padding:0 7px;
   border-radius:999px;
   font-size:0.72rem;
   font-weight:700;
   line-height:1.2;
+  box-sizing:border-box;
 }
 .periodos-badge.is-open {
   background:var(--primary-soft);
@@ -848,7 +854,7 @@
   .periodos-table .col-cierre { width:28%; }
 }
 @media (max-width: 700px) {
-  .periodos-view { gap:6px; }
+  .periodos-view { gap:var(--density-view-gap-sm); }
   .periodos-hero {
     align-items:stretch;
     flex-direction:column;
@@ -932,7 +938,7 @@
 }
 .personas-view {
   display:grid;
-  gap:8px;
+  gap:var(--density-view-gap);
 }
 .personas-toolbar {
   display:flex;
@@ -1005,11 +1011,11 @@
 .personas-view table.personas-table.encargados-table thead th {
   color:var(--ink);
   background:#e4efe8;
-  font-size:0.7rem;
-  font-weight:750;
-  letter-spacing:0.03em;
+  font-size:var(--density-th-font);
+  font-weight:700;
+  letter-spacing:0.04em;
   text-align:left;
-  padding:5px 6px;
+  padding:var(--density-th-pad);
 }
 .personas-view table.personas-table .col-name,
 .personas-view table.personas-table th.col-name,
@@ -1057,7 +1063,7 @@
   align-items:center;
   justify-content:center;
   gap:0;
-  min-height:1.35rem;
+  min-height:var(--density-chip-h);
   max-width:100%;
   padding:1px 7px;
   border-radius:4px;
@@ -1094,6 +1100,11 @@
   text-overflow:ellipsis;
   white-space:nowrap;
 }
+
+/* Columnas/listado solo impresión: nunca visibles en pantalla */
+.personas-print-list {
+  display: none !important;
+}
 .personas-table tr.is-inactive-row td {
   opacity:0.72;
 }
@@ -1101,7 +1112,7 @@
   display:inline-flex;
   align-items:center;
   gap:5px;
-  font-size:0.74rem;
+  font-size:inherit;
   font-weight:650;
   color:var(--ink);
   white-space:nowrap;
@@ -1134,9 +1145,9 @@
   margin:0;
   color:var(--primary);
   font:inherit;
-  font-size:0.74rem;
+  font-size:inherit;
   font-weight:650;
-  line-height:1.2;
+  line-height:var(--density-line);
   cursor:pointer;
   text-decoration:none;
 }
@@ -1222,7 +1233,7 @@
   }
 }
 @media (max-width: 700px) {
-  .personas-view { gap:6px; }
+  .personas-view { gap:var(--density-view-gap-sm); }
   .personas-toolbar { align-items:stretch; flex-direction:column; gap:6px; }
   .personas-toolbar .button { width:100%; }
   .personas-toolbar-filters { width:100%; }
@@ -1313,7 +1324,7 @@
 /* Configuración → Grupos (Fase 11) */
 .configuracion-view {
   display: grid;
-  gap: 10px;
+  gap: var(--density-view-gap);
 }
 .configuracion-hint {
   margin: 0 0 10px;
@@ -1361,5 +1372,552 @@
   }
 }
 
+/* —— Impresión: Historial, Informes y Personas (no afecta vista en pantalla) —— */
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm 10mm;
+  }
 
+  body:has(.historial-view),
+  body:has(#informes-view),
+  body:has(.personas-view) {
+    background: #fff !important;
+    color: #000 !important;
+  }
 
+  body:has(.historial-view) .sidebar,
+  body:has(.historial-view) .sidebar-backdrop,
+  body:has(.historial-view) .menu-button,
+  body:has(.historial-view) .topbar,
+  body:has(.historial-view) .sidebar-footer,
+  body:has(#informes-view) .sidebar,
+  body:has(#informes-view) .sidebar-backdrop,
+  body:has(#informes-view) .menu-button,
+  body:has(#informes-view) .topbar,
+  body:has(#informes-view) .sidebar-footer,
+  body:has(.personas-view) .sidebar,
+  body:has(.personas-view) .sidebar-backdrop,
+  body:has(.personas-view) .menu-button,
+  body:has(.personas-view) .topbar,
+  body:has(.personas-view) .sidebar-footer {
+    display: none !important;
+  }
+
+  body:has(.historial-view) .app-shell,
+  body:has(#informes-view) .app-shell,
+  body:has(.personas-view) .app-shell {
+    display: block;
+    min-height: 0;
+  }
+
+  body:has(.historial-view) .main-content,
+  body:has(#informes-view) .main-content,
+  body:has(.personas-view) .main-content {
+    display: block;
+  }
+
+  body:has(.historial-view) .page-content,
+  body:has(#informes-view) .page-content,
+  body:has(.personas-view) .page-content {
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  /* ——— Historial + Informes (mismo listado) ——— */
+  body:has(.historial-view) .historial-view,
+  body:has(#informes-view) #informes-view {
+    display: block;
+    gap: 0;
+  }
+
+  body:has(.historial-view) .informes-summary-toggle,
+  body:has(.historial-view) .informes-summary-panel,
+  body:has(.historial-view) .informes-meta-actions,
+  body:has(.historial-view) .informes-sync-meta,
+  body:has(.historial-view) .button,
+  body:has(.historial-view) .progress-track,
+  body:has(.historial-view) .completeness-dot,
+  body:has(#informes-view) .informes-summary-toggle,
+  body:has(#informes-view) .informes-summary-panel,
+  body:has(#informes-view) .informes-meta-actions,
+  body:has(#informes-view) .informes-sync-meta,
+  body:has(#informes-view) .button,
+  body:has(#informes-view) .progress-track,
+  body:has(#informes-view) .completeness-dot,
+  body:has(#informes-view) .edit-mode-control,
+  body:has(#informes-view) .edit-mode-backdrop,
+  body:has(#informes-view) .save-indicator {
+    display: none !important;
+  }
+
+  body:has(.historial-view) .informes-meta-chips > .informes-meta-chip:not(.informes-meta-period),
+  body:has(#informes-view) .informes-meta-chips > .informes-meta-chip:not(.informes-meta-period) {
+    display: none !important;
+  }
+
+  body:has(.historial-view) .informes-meta,
+  body:has(#informes-view) .informes-meta {
+    display: block;
+    margin: 0 0 10px;
+    padding: 0 0 8px;
+    border-bottom: 1px solid #bbb;
+  }
+
+  body:has(.historial-view) .informes-meta-main,
+  body:has(#informes-view) .informes-meta-main {
+    display: block;
+  }
+
+  body:has(.historial-view) .informes-meta-title,
+  body:has(#informes-view) .informes-meta-title {
+    margin: 0 0 4px;
+    font-size: 16pt;
+    font-weight: 700;
+    color: #000;
+  }
+
+  body:has(.historial-view) .informes-meta-chips,
+  body:has(#informes-view) .informes-meta-chips {
+    display: block;
+  }
+
+  body:has(.historial-view) .informes-meta-period,
+  body:has(#informes-view) .informes-meta-period {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    font-size: 11pt;
+  }
+
+  body:has(.historial-view) .informes-meta-period .informes-meta-label,
+  body:has(#informes-view) .informes-meta-period .informes-meta-label {
+    font-size: 9pt;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #444;
+  }
+
+  body:has(.historial-view) .informes-meta-period select,
+  body:has(#informes-view) .informes-meta-period select {
+    appearance: none;
+    -webkit-appearance: none;
+    border: 0;
+    background: transparent;
+    padding: 0;
+    margin: 0;
+    max-width: none;
+    font-size: 12pt;
+    font-weight: 700;
+    color: #000;
+    box-shadow: none;
+  }
+
+  body:has(.historial-view) .informes-progress,
+  body:has(#informes-view) .informes-progress {
+    margin: 0 0 8px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  body:has(.historial-view) .informes-progress-row,
+  body:has(#informes-view) .informes-progress-row {
+    display: block;
+  }
+
+  body:has(.historial-view) .progress-stats,
+  body:has(#informes-view) .progress-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+    font-size: 9pt;
+    color: #222;
+  }
+
+  body:has(.historial-view) .progress-stat strong,
+  body:has(#informes-view) .progress-stat strong {
+    font-size: 10pt;
+    color: #000;
+  }
+
+  body:has(.historial-view) .informes-groups-line,
+  body:has(#informes-view) .informes-groups-line {
+    margin: 4px 0 0;
+    font-size: 8.5pt;
+    color: #444;
+  }
+
+  body:has(.historial-view) .informes-board.encargados-board,
+  body:has(#informes-view) .informes-board.encargados-board {
+    min-height: 0 !important;
+    border: 0;
+    box-shadow: none;
+    background: transparent;
+  }
+
+  body:has(.historial-view) .encargados-table-scroll,
+  body:has(.historial-view) .informes-table-scroll,
+  body:has(#informes-view) .encargados-table-scroll,
+  body:has(#informes-view) .informes-table-scroll {
+    overflow: visible !important;
+    max-height: none !important;
+  }
+
+  body:has(.historial-view) .informes-table.encargados-table,
+  body:has(#informes-view) .informes-table.encargados-table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    font-size: 9.5pt;
+    color: #000;
+  }
+
+  body:has(.historial-view) .informes-table thead,
+  body:has(#informes-view) .informes-table thead {
+    display: table-header-group;
+  }
+
+  body:has(.historial-view) .informes-table thead th,
+  body:has(#informes-view) .informes-table thead th {
+    position: static;
+    top: auto;
+    background: #eee !important;
+    color: #000 !important;
+    border-bottom: 1px solid #888;
+    padding: 4px 5px;
+    font-size: 8pt;
+    font-weight: 700;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  body:has(.historial-view) .informes-table tbody tr,
+  body:has(#informes-view) .informes-table tbody tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  body:has(.historial-view) .informes-table tbody td,
+  body:has(#informes-view) .informes-table tbody td {
+    height: auto;
+    min-height: 0;
+    padding: 3px 5px;
+    border-bottom: 1px solid #ccc;
+    background: #fff !important;
+    color: #000;
+    vertical-align: top;
+    line-height: 1.25;
+  }
+
+  body:has(.historial-view) .informes-table tbody tr:nth-child(even) td,
+  body:has(#informes-view) .informes-table tbody tr:nth-child(even) td {
+    background: #f7f7f7 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  body:has(.historial-view) .informes-table .person-name,
+  body:has(.historial-view) .informes-table td.cell-value,
+  body:has(#informes-view) .informes-table .person-name,
+  body:has(#informes-view) .informes-table td.cell-value {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+    height: auto;
+  }
+
+  body:has(.historial-view) .informes-table td.col-comments.cell-value.is-empty-comment,
+  body:has(#informes-view) .informes-table td.col-comments.cell-value.is-empty-comment {
+    color: #888 !important;
+    font-weight: 400;
+    text-align: center;
+  }
+
+  body:has(.historial-view) .privilege-chip,
+  body:has(.historial-view) .grupo-badge,
+  body:has(#informes-view) .privilege-chip,
+  body:has(#informes-view) .grupo-badge {
+    display: inline-block;
+    max-width: 100%;
+    height: auto;
+    min-height: 0;
+    line-height: 1.2;
+    padding: 1px 5px;
+    border: 1px solid #999;
+    border-radius: 3px;
+    background: #fff !important;
+    box-shadow: none !important;
+    color: #000 !important;
+    font-size: 8.5pt;
+    font-weight: 650;
+  }
+
+  body:has(.historial-view) .grupo-badge[data-has-color='true'],
+  body:has(#informes-view) .grupo-badge[data-has-color='true'] {
+    padding-left: 5px;
+  }
+
+  body:has(.historial-view) .informes-empty,
+  body:has(#informes-view) .informes-empty {
+    font-size: 11pt;
+    color: #333;
+  }
+
+  /* En Informes: modo edición usa inputs; en papel se ven como celdas de texto */
+  body:has(#informes-view) .informes-table .field-input {
+    appearance: none;
+    -webkit-appearance: none;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0;
+    margin: 0;
+    height: auto;
+    min-height: 0;
+    color: #000 !important;
+    font-size: inherit;
+    font-weight: 400;
+  }
+
+  /* ——— Personas ——— */
+  body:has(.personas-view) .personas-view {
+    display: block;
+    gap: 0;
+  }
+
+  body:has(.personas-view) .personas-toolbar,
+  body:has(.personas-view) .personas-form-panel,
+  body:has(.personas-view) .personas-form-host,
+  body:has(.personas-view) #personas-form-host,
+  body:has(.personas-view) .personas-feedback,
+  body:has(.personas-view) .button,
+  body:has(.personas-view) .personas-screen-list {
+    display: none !important;
+  }
+
+  body:has(.personas-view) .personas-print-list {
+    display: block !important;
+  }
+
+  body:has(.personas-view) .personas-list-panel {
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+    background: transparent;
+  }
+
+  body:has(.personas-view) .personas-panel-head {
+    display: block;
+    margin: 0 0 10px;
+    padding: 0 0 8px;
+    border-bottom: 1px solid #bbb;
+  }
+
+  body:has(.personas-view) .personas-panel-head h2 {
+    margin: 0 0 2px;
+    font-size: 16pt;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-transform: none;
+    color: #000;
+  }
+
+  body:has(.personas-view) .personas-panel-head .muted {
+    font-size: 9pt;
+    color: #444;
+  }
+
+  body:has(.personas-view) .personas-print-table.encargados-table {
+    display: table !important;
+    width: 100% !important;
+    max-width: none !important;
+    table-layout: fixed !important;
+    border-collapse: collapse !important;
+    font-size: 9pt;
+    color: #000;
+  }
+
+  body:has(.personas-view) .personas-print-table thead {
+    display: table-header-group !important;
+  }
+
+  body:has(.personas-view) .personas-print-table tbody {
+    display: table-row-group !important;
+  }
+
+  body:has(.personas-view) .personas-print-table thead tr,
+  body:has(.personas-view) .personas-print-table tbody tr {
+    display: table-row !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    grid-template-columns: none !important;
+    grid-template-areas: none !important;
+    gap: 0 !important;
+  }
+
+  body:has(.personas-view) .personas-print-table thead th,
+  body:has(.personas-view) .personas-print-table tbody td {
+    display: table-cell !important;
+    float: none !important;
+    position: static !important;
+    grid-area: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 3px 4px !important;
+    border: 0 !important;
+    border-bottom: 1px solid #ccc !important;
+    background: #fff !important;
+    color: #000 !important;
+    vertical-align: middle !important;
+    line-height: 1.25 !important;
+    max-width: none !important;
+    white-space: normal !important;
+    font-size: inherit !important;
+    text-align: left !important;
+    overflow: hidden;
+    word-wrap: break-word;
+  }
+
+  body:has(.personas-view) .personas-print-table thead th {
+    background: #eee !important;
+    border-bottom: 1px solid #888 !important;
+    font-size: 7pt !important;
+    font-weight: 700 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    white-space: normal !important;
+    line-height: 1.15 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  body:has(.personas-view) .personas-print-table tbody tr:nth-child(even) td {
+    background: #f7f7f7 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Anchos equilibrados (evita el 560px de la tabla de pantalla) */
+  body:has(.personas-view) .personas-print-table .col-name,
+  body:has(.personas-view) .personas-print-table th.col-name,
+  body:has(.personas-view) .personas-print-table td.col-name {
+    width: 20% !important;
+  }
+
+  body:has(.personas-view) .personas-print-table .col-group,
+  body:has(.personas-view) .personas-print-table th.col-group,
+  body:has(.personas-view) .personas-print-table td.col-group {
+    width: 7% !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+  }
+
+  body:has(.personas-view) .personas-print-table .col-contacto,
+  body:has(.personas-view) .personas-print-table th.col-contacto,
+  body:has(.personas-view) .personas-print-table td.col-contacto,
+  body:has(.personas-view) .personas-print-table .col-emergencia-tel,
+  body:has(.personas-view) .personas-print-table th.col-emergencia-tel,
+  body:has(.personas-view) .personas-print-table td.col-emergencia-tel {
+    width: 14% !important;
+    white-space: nowrap !important;
+    font-variant-numeric: tabular-nums;
+  }
+
+  body:has(.personas-view) .personas-print-table .col-emergencia-nombre,
+  body:has(.personas-view) .personas-print-table th.col-emergencia-nombre,
+  body:has(.personas-view) .personas-print-table td.col-emergencia-nombre {
+    width: 23% !important;
+  }
+
+  body:has(.personas-view) .personas-print-table .col-emergencia-relacion,
+  body:has(.personas-view) .personas-print-table th.col-emergencia-relacion,
+  body:has(.personas-view) .personas-print-table td.col-emergencia-relacion {
+    width: 22% !important;
+  }
+
+  body:has(.personas-view) .personas-print-table .personas-name,
+  body:has(.personas-view) .personas-print-table .person-name {
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+    font-weight: 650 !important;
+  }
+
+  body:has(.personas-view) .personas-print-table .grupo-badge {
+    display: inline-block !important;
+    max-width: 100%;
+    height: auto;
+    min-height: 0;
+    line-height: 1.2;
+    padding: 1px 5px;
+    border: 1px solid #999;
+    border-radius: 3px;
+    background: #fff !important;
+    box-shadow: none !important;
+    color: #000 !important;
+    font-size: 8pt;
+    font-weight: 650;
+  }
+
+  body:has(.personas-view) .personas-print-table .grupo-badge[data-has-color='true'] {
+    padding-left: 5px;
+  }
+
+  body:has(.personas-view) .empty-state {
+    font-size: 11pt;
+    color: #333;
+    padding: 12px 0;
+  }
+
+  body:has(.personas-view) .personas-print-table tr.is-inactive-row td {
+    opacity: 1;
+    color: #333;
+  }
+
+  /* Historial / Informes: anular grid mobile al imprimir */
+  body:has(.historial-view) .informes-table.encargados-table,
+  body:has(#informes-view) .informes-table.encargados-table {
+    display: table !important;
+  }
+
+  body:has(.historial-view) .informes-table thead,
+  body:has(#informes-view) .informes-table thead {
+    display: table-header-group !important;
+  }
+
+  body:has(.historial-view) .informes-table tbody,
+  body:has(#informes-view) .informes-table tbody {
+    display: table-row-group !important;
+  }
+
+  body:has(.historial-view) .informes-table tbody tr,
+  body:has(#informes-view) .informes-table tbody tr {
+    display: table-row !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    grid-template-columns: none !important;
+    grid-template-areas: none !important;
+  }
+
+  body:has(.historial-view) .informes-table tbody td,
+  body:has(.historial-view) .informes-table thead th,
+  body:has(#informes-view) .informes-table tbody td,
+  body:has(#informes-view) .informes-table thead th {
+    display: table-cell !important;
+    float: none !important;
+    grid-area: auto !important;
+  }
+}

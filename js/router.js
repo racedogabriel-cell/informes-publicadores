@@ -2,6 +2,7 @@ import { reportsView, bindReports, availablePeriods } from './informes.js';
 import { periodsView, bindPeriods } from './periodos.js';
 import { personasView, bindPersonas } from './personas.js';
 import { configuracionView, bindConfiguracion } from './configuracion.js';
+import { historialView, bindHistorial, historialPeriods } from './historial.js';
 
 /** Estados oficiales de módulo. No implementar módulos marcados como "No iniciado". */
 const moduleStatus = {
@@ -9,11 +10,12 @@ const moduleStatus = {
   personas: 'En desarrollo',
   informes: 'En desarrollo',
   periodos: 'En desarrollo',
-  estadisticas: 'No iniciado',
+  historial: 'En desarrollo',
   configuracion: 'En desarrollo',
 };
 
 let reportPeriod = availablePeriods().at(-1).key;
+let historialPeriod = historialPeriods()[0].key;
 
 function pendingModuleView(status) {
   return `<p class="view-intro">Estado: ${status}.</p>`;
@@ -47,10 +49,26 @@ const routes = {
     view: () => periodsView(),
     bind: () => bindPeriods(),
   },
-  estadisticas: {
-    title: 'Estadísticas',
+  historial: {
+    title: 'Historial',
     eyebrow: '',
-    view: () => pendingModuleView(moduleStatus.estadisticas),
+    view: () => historialView(historialPeriod),
+    bind: () =>
+      bindHistorial(historialPeriod, (next) => {
+        historialPeriod = next;
+        renderRoute();
+      }),
+  },
+  // Compat: hash antiguo #estadisticas → Historial
+  estadisticas: {
+    title: 'Historial',
+    eyebrow: '',
+    view: () => historialView(historialPeriod),
+    bind: () =>
+      bindHistorial(historialPeriod, (next) => {
+        historialPeriod = next;
+        renderRoute();
+      }),
   },
   configuracion: {
     title: 'Configuración',
@@ -65,18 +83,19 @@ export const navItems = [
   { id: 'personas', label: 'Personas', icon: '♙' },
   { id: 'informes', label: 'Informes', icon: '▤' },
   { id: 'periodos', label: 'Períodos', icon: '◷' },
-  { id: 'estadisticas', label: 'Estadísticas', icon: '◔' },
+  { id: 'historial', label: 'Historial', icon: '◔' },
   { id: 'configuracion', label: 'Configuración', icon: '⚙' },
 ];
 
 export function renderRoute() {
   const id = location.hash.slice(1) || 'informes';
   const route = routes[id] || routes.informes;
+  const navId = id === 'estadisticas' ? 'historial' : id;
   document.querySelector('#page-title').textContent = route.title;
   document.querySelector('#page-eyebrow').textContent = route.eyebrow;
   document.querySelector('#app').innerHTML = route.view();
   document.querySelectorAll('.nav-link').forEach((link) => {
-    link.setAttribute('aria-current', link.dataset.route === id ? 'page' : 'false');
+    link.setAttribute('aria-current', link.dataset.route === navId ? 'page' : 'false');
   });
   route.bind?.();
   document.querySelector('#app').focus();

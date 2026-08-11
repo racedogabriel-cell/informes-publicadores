@@ -29,6 +29,11 @@ function escapeHtml(value) {
   );
 }
 
+function displayContactField(value) {
+  const text = String(value ?? '').trim();
+  return text || '—';
+}
+
 function isActivo(value) {
   return value === true || value === 'Sí' || value === 'Si' || value === 'sí';
 }
@@ -312,7 +317,7 @@ function renderList(root, state) {
   }
 
   host.innerHTML = `
-    <div class="encargados-table-scroll personas-table-scroll">
+    <div class="encargados-table-scroll personas-table-scroll personas-screen-list">
       <table class="encargados-table personas-table">
         <colgroup>
           <col class="personas-col-name" style="width:560px" />
@@ -345,6 +350,36 @@ function renderList(root, state) {
                       : `<button type="button" class="personas-action-link" data-persona-activate="${escapeHtml(person.id)}">Activar</button>`
                   }
                 </td>
+              </tr>`;
+            })
+            .join('')}
+        </tbody>
+      </table>
+    </div>
+    <div class="personas-print-list" aria-hidden="true">
+      <table class="encargados-table personas-print-table">
+        <thead>
+          <tr>
+            <th scope="col" class="col-name">Nombre</th>
+            <th scope="col" class="col-group">Grupo</th>
+            <th scope="col" class="col-contacto">Nº contacto</th>
+            <th scope="col" class="col-emergencia-tel">Nº emergencia</th>
+            <th scope="col" class="col-emergencia-nombre">Nombre emergencia</th>
+            <th scope="col" class="col-emergencia-relacion">Relación</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows
+            .map((person) => {
+              const activo = isActivo(person.activo);
+              return `
+              <tr class="${activo ? '' : 'is-inactive-row'}">
+                <td class="col-name person-name personas-name">${escapeHtml(person.nombre)}</td>
+                <td class="col-group">${groupBadgeHtml(person, state)}</td>
+                <td class="col-contacto">${escapeHtml(displayContactField(person.numeroContacto))}</td>
+                <td class="col-emergencia-tel">${escapeHtml(displayContactField(person.contactoEmergencia))}</td>
+                <td class="col-emergencia-nombre">${escapeHtml(displayContactField(person.nombreEmergencia))}</td>
+                <td class="col-emergencia-relacion">${escapeHtml(displayContactField(person.relacionEmergencia))}</td>
               </tr>`;
             })
             .join('')}

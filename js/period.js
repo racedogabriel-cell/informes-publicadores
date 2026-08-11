@@ -45,10 +45,23 @@ export function isEstadoAbierto(value) {
 
 /** Meses de selector (actual y dos anteriores), etiquetas canónicas. */
 export function calendarPeriodOptions() {
+  // Orden legacy Informes: más antiguo → más reciente (el select inicia en el último).
+  return lastNMonthsOptions(3).slice().reverse();
+}
+
+/**
+ * Últimos N meses de calendario (incluye el mes actual), del más reciente al más antiguo.
+ * @param {number} [count=24]
+ * @returns {{ key: string, label: string }[]}
+ */
+export function lastNMonthsOptions(count = 24) {
+  const total = Math.max(1, Number(count) || 24);
   const now = new Date();
-  return [-2, -1, 0].map((offset) => {
-    const date = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+  const options = [];
+  for (let offset = 0; offset < total; offset += 1) {
+    const date = new Date(now.getFullYear(), now.getMonth() - offset, 1);
     const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-    return { key, label: periodKeyToLabel(key) };
-  });
+    options.push({ key, label: periodKeyToLabel(key) });
+  }
+  return options;
 }

@@ -23,8 +23,9 @@ Detalle: `docs/01_ARQUITECTURA.md`.
 | Inicio | No iniciado |
 | Personas | En desarrollo |
 | Informes | En desarrollo |
-| Estadísticas | No iniciado |
-| Configuración | No iniciado |
+| Períodos | En desarrollo |
+| Historial | En desarrollo |
+| Configuración | En desarrollo |
 
 ## Ejecutar localmente
 

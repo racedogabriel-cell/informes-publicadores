@@ -66,7 +66,7 @@ No hay otras congregaciones en el alcance actual.
 
 ## 2026-08-07 — Módulos oficiales y estados
 
-Módulos oficiales del Portal General: Inicio, Personas, Informes, Períodos, Estadísticas, Configuración.
+Módulos oficiales del Portal General: Inicio, Personas, Informes, Períodos, Historial, Configuración.
 
 Estados posibles: No iniciado, En desarrollo, Terminado.
 
@@ -80,7 +80,7 @@ Que un módulo exista en la navegación no implica que deba implementarse.
 - Inicio: No iniciado.
 - Personas: En desarrollo (ABM padrón Portal General).
 - Períodos: En desarrollo (UI de administración; sin acciones en Sheets).
-- Estadísticas: No iniciado.
+- Historial: En desarrollo.
 - Configuración: No iniciado.
 
 ## 2026-08-07 — Eliminación de desvíos
@@ -92,7 +92,7 @@ Se descartó de la base oficial:
 - Placeholders funcionales que simulan producto terminado.
 - Almacenamiento local fuera de contrato.
 - CRUD de Personas.
-- Estadísticas implementadas sin aprobación.
+- Estadísticas (módulo retirado; reemplazado por Historial).
 - Configuraciones inventadas.
 - Código muerto y funciones sin uso.
 - Archivos experimentales ajenos al contrato.
@@ -111,7 +111,7 @@ Proceso oficial: diseño funcional → aprobación → implementación → audit
 
 ## 2026-08-07 — Módulos aprobados vs. implementación
 
-Inicio, Personas, Informes, Períodos, Estadísticas y Configuración existen y están aprobados como módulos oficiales del Portal General.
+Inicio, Personas, Informes, Períodos, Historial y Configuración existen y están aprobados como módulos oficiales del Portal General.
 
 Un módulo en estado **No iniciado** no se implementa hasta contar con especificación funcional aprobada. Eso no lo excluye del proyecto.
 
@@ -142,7 +142,7 @@ Responsabilidades de diseño: abrir/cerrar período, regenerar hojas de grupo de
 Especificación: `docs/10_ESPECIFICACION_PERIODOS.md`.  
 No implementar hasta sprint explícito.
 
-Lista actualizada de módulos del Portal General: Inicio, Personas, Informes, Períodos, Estadísticas, Configuración.
+Lista actualizada de módulos del Portal General: Inicio, Personas, Informes, Períodos, Historial, Configuración.
 
 ## 2026-08-07 — Hoja Sistema (estado global del período)
 
@@ -179,5 +179,18 @@ Queda aprobado el ABM del padrón en Portal General:
 - Baja lógica vía `Activo` (sin DELETE físico)
 - ID generado en backend; inmutable en UI
 - Cambios de padrón no alteran Historial ni el período abierto hasta regenerar/abrir período
+
+Estado del módulo: **En desarrollo**.
+
+## 2026-08-10 — Historial reemplaza Estadísticas
+
+El slot de navegación **Estadísticas** se reemplaza por **Historial**.
+
+Alcance aprobado:
+
+- Consulta de solo lectura de informes de los últimos 24 meses.
+- Misma estructura visual del listado de Informes (sin modo edición).
+- Lectura vía `action=historial&periodo=YYYY-MM` desde la hoja `Historial`, con fallback al período activo si aún no está archivado.
+- Sin ABM ni escritura desde este módulo.
 
 Estado del módulo: **En desarrollo**.

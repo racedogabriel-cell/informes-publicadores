@@ -25,6 +25,7 @@ Este script atiende:
 |---|---|
 | `?action=reports` | Informes consolidados del período de trabajo |
 | `?action=system` | Estado global de la hoja `Sistema` |
+| `?action=historial&periodo=YYYY-MM` | Lectura solo consulta del `Historial` (o período activo si aún no está archivado) |
 | `?action=openPeriod&periodo=YYYY-MM` | Abrir período (Portal General). Valida todo antes de escribir; LockService; no regenera si hay datos sin cierre formal. |
 | `?action=closePeriod` | Cerrar período: copia a Historial y marca Sistema CERRADO. No limpia hojas de grupo. |
 | `?action=personas` | Padrón completo A–H (Portal General / módulo Personas). |
@@ -93,6 +94,8 @@ Filas históricas previas a Fase 6: al primer cierre nuevo se inserta la columna
 ## Escritura Encargados (`doPost`)
 
 ### `action=savePerson` + `mode=save` (auto-save actual)
+
+Si el ID no existe en la hoja `Grupo {ID}`, materializa A–B desde el padrón Personas (append) y luego escribe C–F. No limpia filas ni toca B3/Sistema/Historial.
 
 Una sola persona por request. Usado por el Portal Encargados al cambiar privilegio o al salir (blur) de Horas/Estudios/Comentarios.
 

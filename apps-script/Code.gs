@@ -5,6 +5,7 @@
  * doGet:
  *   ?action=reports
  *   ?action=system
+ *   ?action=historial&periodo=YYYY-MM
  *   ?action=openPeriod&periodo=YYYY-MM
  *   ?action=closePeriod
  *   ?action=personas
@@ -84,6 +85,9 @@ function doGet(event) {
     if (action === 'system') {
       return json_(readSystemState_());
     }
+    if (action === 'historial') {
+      return json_(readHistorialPeriod_(event && event.parameter && event.parameter.periodo));
+    }
     if (action === 'openPeriod') {
       return json_(openPeriod_(event && event.parameter && event.parameter.periodo));
     }
@@ -100,7 +104,7 @@ function doGet(event) {
       ok: false,
       error: 'Acción no válida.',
       message:
-        'Usá ?action=reports | ?action=system | ?action=openPeriod&periodo=YYYY-MM | ?action=closePeriod | ?action=personas | ?action=grupos',
+        'Usá ?action=reports | ?action=system | ?action=historial&periodo=YYYY-MM | ?action=openPeriod&periodo=YYYY-MM | ?action=closePeriod | ?action=personas | ?action=grupos',
     });
   } catch (error) {
     return json_({
@@ -692,6 +696,137 @@ function appendHistorialRows_(sheet, snapshot, fechaCierre) {
   sheet.getRange(startRow, 1, rows.length, HISTORIAL_HEADERS.length).setValues(rows);
 }
 
+/**
+ * Lectura solo consulta del Historial para un período YYYY-MM.
+ * Shape compatible con action=reports (groups → informes).
+ * Si no hay filas archivadas y el período es el PeriodoActivo vigente,
+ * devuelve la fotografía viva de las hojas de grupo (sin permitir escritura).
+ */
+function readHistorialPeriod_(periodoRaw) {
+  var periodo = normalizePeriodoKey_(periodoRaw);
+  if (!periodo) {
+    return {
+      ok: false,
+      error: 'Período inválido.',
+      message: 'Indicá un período válido con formato YYYY-MM.',
+      periodo: null,
+      groups: [],
+    };
+  }
+
+  var spreadsheet = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var monthLabel = formatPeriodLabel_(periodo);
+  var archived = buildHistorialGroups_(spreadsheet, periodo, monthLabel);
+
+  if (archived.groups.length) {
+    return {
+      ok: true,
+      generatedAt: new Date().toISOString(),
+      periodo: periodo,
+      mes: monthLabel,
+      source: 'historial',
+      groups: archived.groups,
+    };
+  }
+
+  var sistema = getOrCreateSistemaSheet_(spreadsheet);
+  var state = readSistemaMap_(sistema);
+  var activo = String(state.PeriodoActivo || '').trim();
+  if (activo === periodo) {
+    return {
+      ok: true,
+      generatedAt: new Date().toISOString(),
+      periodo: periodo,
+      mes: monthLabel,
+      source: 'periodo-activo',
+      groups: buildReportsGroups_(spreadsheet),
+    };
+  }
+
+  return {
+    ok: true,
+    generatedAt: new Date().toISOString(),
+    periodo: periodo,
+    mes: monthLabel,
+    source: 'historial',
+    groups: [],
+  };
+}
+
+/**
+ * Agrupa filas del Historial por GrupoID/Grupo para un período.
+ * Colores desde el catálogo vigente (solo presentación; el nombre congelado se respeta).
+ */
+function buildHistorialGroups_(spreadsheet, periodo, monthLabel) {
+  var sheet = spreadsheet.getSheetByName(HISTORIAL_SHEET);
+  if (!sheet) {
+    return { groups: [] };
+  }
+
+  ensureHistorialHeaders_(sheet);
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    return { groups: [] };
+  }
+
+  var numRows = lastRow - 1;
+  var values = sheet.getRange(2, 1, numRows, HISTORIAL_HEADERS.length).getDisplayValues();
+  var catalog = getCatalogGruposSoft_(spreadsheet) || [];
+  var colorById = {};
+  for (var c = 0; c < catalog.length; c++) {
+    colorById[String(catalog[c].id)] = String(catalog[c].color || '');
+  }
+
+  var byKey = {};
+  var order = [];
+
+  for (var i = 0; i < values.length; i++) {
+    var row = values[i];
+    if (String(row[0] || '').trim() !== periodo) continue;
+
+    var grupoId = String(row[1] || '').trim();
+    var grupoNombre = String(row[2] || '').trim();
+    var key = grupoId ? 'id:' + grupoId : 'nombre:' + (grupoNombre || '—');
+
+    if (!byKey[key]) {
+      byKey[key] = {
+        grupo: grupoNombre || (grupoId ? 'Grupo ' + grupoId : '—'),
+        grupoId: grupoId,
+        color: colorById[grupoId] || '',
+        mes: monthLabel,
+        informes: [],
+      };
+      order.push(key);
+    }
+
+    var id = String(row[3] || '').trim();
+    var nombre = String(row[4] || '').trim();
+    if (!id || !nombre) continue;
+
+    byKey[key].informes.push({
+      id: id,
+      nombre: nombre,
+      privilegio: String(row[5] || ''),
+      horas: String(row[6] || ''),
+      estudios: String(row[7] || ''),
+      comentarios: String(row[8] || ''),
+    });
+  }
+
+  order.sort(function (a, b) {
+    var idA = Number(byKey[a].grupoId) || 0;
+    var idB = Number(byKey[b].grupoId) || 0;
+    if (idA && idB && idA !== idB) return idA - idB;
+    return String(byKey[a].grupo).localeCompare(String(byKey[b].grupo), 'es');
+  });
+
+  return {
+    groups: order.map(function (key) {
+      return byKey[key];
+    }),
+  };
+}
+
 function writeSistemaClose_(sheet, fechaCierre) {
   var map = readSistemaMap_(sheet);
   map.EstadoPeriodo = ESTADO_CERRADO;
@@ -911,6 +1046,21 @@ function saveGroupFromPayload_(payload) {
   var wroteAny = false;
 
   for (var i = 0; i < payload.personas.length; i++) {
+    var ensure = ensurePersonRowInGroupSheet_(
+      context.sheet,
+      idRowMap,
+      payload.personas[i],
+      context.grupoId,
+      context.spreadsheet,
+    );
+    if (!ensure.ok) {
+      errors.push({
+        id: String((payload.personas[i] && payload.personas[i].id) || ''),
+        index: i,
+        error: ensure.error,
+      });
+      continue;
+    }
     var result = writePersonFields_(context.sheet, idRowMap, payload.personas[i], i, context.grupo);
     if (result.error) {
       errors.push(result.error);
@@ -984,6 +1134,36 @@ function savePersonFromPayload_(payload) {
   }
 
   var idRowMap = buildIdRowMap_(context.sheet);
+  var ensure = ensurePersonRowInGroupSheet_(
+    context.sheet,
+    idRowMap,
+    payload.persona,
+    context.grupoId,
+    context.spreadsheet,
+  );
+  if (!ensure.ok) {
+    return {
+      ok: false,
+      wroteToSheet: false,
+      action: SAVE_PERSON_ACTION,
+      grupo: context.grupo,
+      grupoId: context.grupoId,
+      sheetKey: context.sheetKey,
+      periodo: context.periodoActivo,
+      mes: payload.mes,
+      counts: { received: 1, updated: 0, rejected: 1 },
+      updated: [],
+      errors: [
+        {
+          id: String((payload.persona && payload.persona.id) || ''),
+          index: 0,
+          error: ensure.error,
+        },
+      ],
+      message: ensure.error || 'No se actualizó la persona.',
+    };
+  }
+
   var result = writePersonFields_(context.sheet, idRowMap, payload.persona, 0, context.grupo);
 
   if (result.error) {
@@ -1115,6 +1295,61 @@ function writePersonFields_(sheet, idRowMap, person, index, grupo) {
   ]);
 
   return { updated: { id: id, row: row } };
+}
+
+/**
+ * Si el ID no está en la hoja del grupo, append A–B desde el padrón Personas.
+ * No limpia filas, no toca B3/Sistema/Historial. Solo se llama al guardar.
+ */
+function ensurePersonRowInGroupSheet_(sheet, idRowMap, person, grupoId, spreadsheet) {
+  var id = String((person && person.id) || '').trim();
+  if (!id) {
+    return { ok: false, error: 'ID vacío.' };
+  }
+  if (idRowMap[id]) {
+    return { ok: true, row: idRowMap[id], created: false };
+  }
+
+  var personasSheet = spreadsheet.getSheetByName(PERSONAS_SHEET);
+  if (!personasSheet) {
+    return { ok: false, error: 'No existe la hoja Personas.' };
+  }
+
+  ensurePersonasHeaders_(personasSheet);
+  var rows = readPersonasRows_(personasSheet);
+  var found = null;
+  for (var i = 0; i < rows.length; i++) {
+    if (String(rows[i].id || '').trim() === id) {
+      found = rows[i];
+      break;
+    }
+  }
+  if (!found) {
+    return { ok: false, error: 'No se encontró el ID en el padrón Personas.' };
+  }
+  if (!found.activo) {
+    return { ok: false, error: 'La persona no está activa en el padrón.' };
+  }
+
+  var catalog = getCatalogGruposSoft_(spreadsheet) || [];
+  var resolved = resolveGrupoRef_(catalog, found.grupo);
+  var personGrupoId = resolved ? String(resolved.id) : '';
+  if (!personGrupoId || personGrupoId !== String(grupoId || '').trim()) {
+    return {
+      ok: false,
+      error: 'La persona no pertenece a este grupo en el padrón.',
+    };
+  }
+
+  var nombre = String(found.nombre || '').trim();
+  if (!nombre) {
+    return { ok: false, error: 'La persona no tiene nombre en el padrón.' };
+  }
+
+  var startRow = Math.max(sheet.getLastRow() + 1, 7);
+  sheet.getRange(startRow, 1, 1, 6).setValues([[id, nombre, '', '', '', '']]);
+  idRowMap[id] = startRow;
+  return { ok: true, row: startRow, created: true };
 }
 
 function buildIdRowMap_(sheet) {

@@ -308,17 +308,17 @@
   border-collapse: collapse;
   border-spacing: 0;
   table-layout: fixed;
-  font-size: 0.84rem;
+  font-size: var(--density-font);
 }
 
 .encargados-table thead th {
   position: sticky;
   top: 0;
   z-index: 5;
-  padding: 5px 6px;
+  padding: var(--density-th-pad);
   background: #eef5f1;
   color: var(--muted);
-  font-size: 0.66rem;
+  font-size: var(--density-th-font);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -334,11 +334,15 @@
 }
 
 .encargados-table tbody td {
-  /* Sin height fija: la fila la define el control más alto (~1.55rem) */
-  padding: 0 6px;
+  /* Densidad Historial/Informes: mismo alto y tipografía en todos los módulos */
+  box-sizing: border-box;
+  height: var(--density-row-h);
+  padding: var(--density-td-pad);
   border-bottom: 1px solid #e8eee9;
   vertical-align: middle;
   background: #fff;
+  line-height: var(--density-line);
+  font-size: inherit;
 }
 
 .encargados-table tbody tr:nth-child(even) td {
@@ -394,27 +398,69 @@
   text-align: left;
 }
 
-/* Completitud: punto discreto */
+/* Completitud: barra lateral + tinte de fila + punto legible (tablets / pantallas chicas) */
 .completeness-dot {
   display: inline-block;
-  width: 6px;
-  height: 6px;
-  margin-right: 6px;
+  width: 9px;
+  height: 9px;
+  margin-right: 7px;
   border-radius: 50%;
   vertical-align: middle;
   background: var(--empty-dot);
+  border: 1.5px solid rgb(23 34 29 / 22%);
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.encargados-table tbody tr.is-empty {
+  --row-accent: #7d8983;
+  --row-tint: #f3f5f4;
+}
+
+.encargados-table tbody tr.is-editing {
+  --row-accent: var(--editing-dot);
+  --row-tint: #fbf4e3;
+}
+
+.encargados-table tbody tr.is-complete {
+  --row-accent: var(--complete-dot);
+  --row-tint: #e7f5ed;
 }
 
 .encargados-table tbody tr.is-empty .completeness-dot {
   background: var(--empty-dot);
+  border-color: rgb(23 34 29 / 28%);
 }
 
 .encargados-table tbody tr.is-editing .completeness-dot {
   background: var(--editing-dot);
+  border-color: rgb(110 74 8 / 35%);
 }
 
 .encargados-table tbody tr.is-complete .completeness-dot {
   background: var(--complete-dot);
+  border-color: rgb(26 90 60 / 40%);
+}
+
+.encargados-table tbody tr.is-empty td,
+.encargados-table tbody tr.is-editing td,
+.encargados-table tbody tr.is-complete td,
+.encargados-table tbody tr.is-empty:nth-child(even) td,
+.encargados-table tbody tr.is-editing:nth-child(even) td,
+.encargados-table tbody tr.is-complete:nth-child(even) td {
+  background: var(--row-tint);
+}
+
+.encargados-table tbody tr.is-empty:hover td,
+.encargados-table tbody tr.is-editing:hover td,
+.encargados-table tbody tr.is-complete:hover td {
+  filter: brightness(0.985);
+}
+
+.encargados-table tbody tr.is-empty td:first-child,
+.encargados-table tbody tr.is-editing td:first-child,
+.encargados-table tbody tr.is-complete td:first-child {
+  box-shadow: inset 4px 0 0 var(--row-accent);
 }
 
 /* Controles integrados en la celda (no “cajitas”) */
@@ -426,9 +472,9 @@
   padding: 2px 5px;
   color: var(--ink);
   font-size: inherit;
-  line-height: 1.25;
+  line-height: var(--density-line);
   min-height: 0;
-  height: 1.55rem;
+  height: var(--density-control-h);
   transition: border-color 0.12s ease, background 0.12s ease, box-shadow 0.12s ease;
 }
 
@@ -514,8 +560,8 @@
   background-size: 4px 4px, 4px 4px;
   background-repeat: no-repeat;
   padding: 0 16px 0 5px;
-  height: 1.375rem; /* ~22px */
-  line-height: 1.375rem;
+  height: var(--density-chip-h);
+  line-height: var(--density-chip-h);
   min-height: 0;
 }
 
@@ -526,8 +572,8 @@
   box-sizing: border-box;
   font-weight: 650;
   font-size: 0.78rem;
-  line-height: 1.375rem;
-  height: 1.375rem;
+  line-height: var(--density-chip-h);
+  height: var(--density-chip-h);
   text-align: center;
   white-space: nowrap;
   overflow: hidden;
@@ -783,15 +829,29 @@
     grid-area: name;
     align-self: center;
     min-width: 0;
-    font-size: 0.84rem;
+    font-size: var(--density-font);
     font-weight: 700;
   }
 
   .encargados-table tbody td.col-name .completeness-dot {
-    width: 6px;
-    height: 6px;
-    margin-right: 5px;
+    width: 9px;
+    height: 9px;
+    margin-right: 6px;
     flex-shrink: 0;
+  }
+
+  .encargados-table tbody tr.is-empty,
+  .encargados-table tbody tr.is-editing,
+  .encargados-table tbody tr.is-complete {
+    background: var(--row-tint) !important;
+    box-shadow: inset 4px 0 0 var(--row-accent);
+  }
+
+  .encargados-table tbody tr.is-empty td,
+  .encargados-table tbody tr.is-editing td,
+  .encargados-table tbody tr.is-complete td {
+    background: transparent !important;
+    box-shadow: none;
   }
 
   .encargados-table tbody td.col-name.person-name,
@@ -800,7 +860,7 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    font-size: 0.84rem;
+    font-size: var(--density-font);
     font-weight: 700;
     line-height: 1.15;
   }
@@ -839,7 +899,7 @@
   .encargados-table .field-input {
     width: 100%;
     min-height: 0;
-    height: 1.55rem; /* misma densidad que desktop */
+    height: var(--density-control-h); /* misma densidad que desktop */
     padding: 0 4px;
     font-size: 0.8rem;
     font-weight: 400;
@@ -855,8 +915,8 @@
     max-width: none !important;
     field-sizing: fixed;
     min-height: 0;
-    height: 1.375rem;
-    line-height: 1.375rem;
+    height: var(--density-chip-h);
+    line-height: var(--density-chip-h);
     padding: 0 0.65rem 0 0.15rem !important;
     font-size: 0.72rem;
     font-weight: 650;
@@ -905,12 +965,12 @@
     width: 100%;
     min-width: 0;
     max-width: none;
-    height: 1.55rem;
+    height: var(--density-row-h-sm);
     min-height: 0;
     padding: 0;
-    font-size: 0.84rem;
+    font-size: var(--density-font);
     font-weight: 700;
-    line-height: 1.55rem;
+    line-height: var(--density-row-h-sm);
     text-align: center;
     white-space: nowrap;
     overflow: hidden;
@@ -942,10 +1002,10 @@
     height: auto;
     min-height: 1.85rem;
     padding: 5px 8px;
-    font-size: 0.84rem;
+    font-size: var(--density-font);
     font-weight: 400;
     font-style: normal;
-    line-height: 1.25;
+    line-height: var(--density-line);
     text-align: left;
     white-space: normal;
     overflow: visible;

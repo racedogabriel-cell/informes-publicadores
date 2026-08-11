@@ -1,22 +1,33 @@
 /**
- * Personas — anchos de tabla.
- * Debe cargarse DESPUÉS de encargados.css para anular:
- *   .encargados-table { width:100%; table-layout:fixed }
- *   .col-name { width:36% }
+ * Personas / listados admin — anchos + densidad de renglón (= Historial).
+ * Debe cargarse DESPUÉS de encargados.css.
  */
 .personas-view table.personas-table.encargados-table {
   width: 870px !important;
   max-width: 100%;
   table-layout: fixed !important;
+  font-size: var(--density-font);
 }
 
 .personas-view table.personas-table.encargados-table thead th {
   color: var(--ink);
   background: #e4efe8;
-  font-size: 0.7rem;
-  font-weight: 750;
-  letter-spacing: 0.03em;
+  font-size: var(--density-th-font);
+  font-weight: 700;
+  letter-spacing: 0.04em;
   text-align: left;
+  padding: var(--density-th-pad);
+}
+
+.personas-view table.personas-table.encargados-table tbody td,
+.periodos-view table.periodos-table.encargados-table tbody td,
+.configuracion-view table.configuracion-table.encargados-table tbody td {
+  box-sizing: border-box;
+  height: var(--density-row-h);
+  padding: var(--density-td-pad);
+  line-height: var(--density-line);
+  font-size: inherit;
+  vertical-align: middle;
 }
 
 .personas-view table.personas-table col.personas-col-name,
@@ -72,5 +83,115 @@
   .personas-view table.personas-table col.personas-col-actions,
   .personas-view table.personas-table .col-actions {
     width: auto !important;
+  }
+
+  /* Gana a encargados.css: cards densas con tipografía de Historial */
+  .personas-view table.personas-table.encargados-table tbody tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      'name group status'
+      'actions actions actions';
+    gap: 2px 8px;
+    align-items: center;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 4px 6px;
+    margin: 0 0 6px;
+    background: #fff;
+    font-size: var(--density-font);
+  }
+
+  .personas-view table.personas-table.encargados-table tbody td {
+    display: block;
+    width: auto !important;
+    height: auto;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    background: transparent !important;
+    font-size: inherit;
+    line-height: var(--density-line);
+  }
+
+  .personas-view table.personas-table.encargados-table tbody td.col-name {
+    grid-area: name;
+    font-size: var(--density-font);
+    font-weight: 650;
+  }
+
+  .periodos-view table.periodos-table.encargados-table tbody tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      'name status activo'
+      'apertura apertura cierre';
+    gap: 2px 8px;
+    align-items: center;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 4px 6px;
+    margin: 0 0 6px;
+    background: #fff;
+    font-size: var(--density-font);
+  }
+
+  .periodos-view table.periodos-table.encargados-table tbody td {
+    display: block;
+    width: auto !important;
+    height: auto;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    background: transparent !important;
+    font-size: inherit;
+    line-height: var(--density-line);
+  }
+
+  .periodos-view table.periodos-table.encargados-table tbody td.col-name {
+    grid-area: name;
+    font-size: var(--density-font);
+    font-weight: 650;
+  }
+}
+
+/* Impresión Personas: anchos propios (no heredar 560px de pantalla) */
+@media print {
+  .personas-view .personas-print-table .col-name,
+  .personas-view .personas-print-table th.col-name,
+  .personas-view .personas-print-table td.col-name {
+    width: 20% !important;
+    max-width: none !important;
+  }
+
+  .personas-view .personas-print-table .col-group,
+  .personas-view .personas-print-table th.col-group,
+  .personas-view .personas-print-table td.col-group {
+    width: 7% !important;
+    max-width: none !important;
+  }
+
+  .personas-view .personas-print-table .col-contacto,
+  .personas-view .personas-print-table th.col-contacto,
+  .personas-view .personas-print-table td.col-contacto,
+  .personas-view .personas-print-table .col-emergencia-tel,
+  .personas-view .personas-print-table th.col-emergencia-tel,
+  .personas-view .personas-print-table td.col-emergencia-tel {
+    width: 14% !important;
+    max-width: none !important;
+  }
+
+  .personas-view .personas-print-table .col-emergencia-nombre,
+  .personas-view .personas-print-table th.col-emergencia-nombre,
+  .personas-view .personas-print-table td.col-emergencia-nombre {
+    width: 23% !important;
+    max-width: none !important;
+  }
+
+  .personas-view .personas-print-table .col-emergencia-relacion,
+  .personas-view .personas-print-table th.col-emergencia-relacion,
+  .personas-view .personas-print-table td.col-emergencia-relacion {
+    width: 22% !important;
+    max-width: none !important;
   }
 }

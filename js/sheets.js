@@ -34,6 +34,21 @@ export async function getMonthlyReports() {
   return fetchJson(`${GOOGLE_REPORTS_ENDPOINT}?action=reports`);
 }
 
+/**
+ * Lectura de fotografías del Historial (solo consulta).
+ * @param {string} periodo Clave YYYY-MM
+ */
+export async function getHistorial(periodo) {
+  if (!GOOGLE_REPORTS_ENDPOINT) return null;
+  const key = String(periodo || '').trim();
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(key)) {
+    throw new Error('Indicá un período válido con formato YYYY-MM.');
+  }
+  return fetchJson(
+    `${GOOGLE_REPORTS_ENDPOINT}?action=historial&periodo=${encodeURIComponent(key)}`,
+  );
+}
+
 /** Lectura del estado global (hoja Sistema). */
 export async function getSystemState() {
   if (!GOOGLE_REPORTS_ENDPOINT) {
