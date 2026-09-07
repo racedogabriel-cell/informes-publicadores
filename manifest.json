@@ -1,9 +1,11 @@
 {
+  "id": "/informes-publicadores/",
   "name": "Informes de publicadores",
   "short_name": "Informes",
   "description": "Consulta de informes mensuales de publicadores.",
   "lang": "es-AR",
-  "start_url": "./",
+  "start_url": "./#informes",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#f6f8f6",
   "theme_color": "#155e4b",

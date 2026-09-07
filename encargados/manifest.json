@@ -1,0 +1,13 @@
+{
+  "id": "/informes-publicadores/encargados/",
+  "name": "Carga de informes",
+  "short_name": "Carga",
+  "description": "Portal de encargados para completar informes del grupo.",
+  "lang": "es-AR",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f8f6",
+  "theme_color": "#155e4b",
+  "icons": [{ "src": "../assets/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

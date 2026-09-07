@@ -1,4 +1,4 @@
-const CACHE_NAME = 'informes-publicadores-v57';
+const CACHE_NAME = 'informes-publicadores-v58';
 const APP_SHELL = [
   './',
   './index.html',
@@ -32,7 +32,11 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))),
+      Promise.all(
+        keys
+          .filter((key) => key.startsWith('informes-publicadores-') && key !== CACHE_NAME)
+          .map((key) => caches.delete(key)),
+      ),
     ).then(() => self.clients.claim()),
   );
 });
@@ -42,12 +46,14 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(event.request.url);
   const isSameOrigin = url.origin === self.location.origin;
-  const isScriptOrModule =
-    event.request.destination === 'script' ||
-    /\.m?js$/i.test(url.pathname) ||
-    url.pathname.includes('/encargados/');
 
-  // JS y Portal Encargados: red primero para no quedar pegados a módulos viejos.
+  // El Portal Encargados tiene su propia PWA; no interceptar esas rutas.
+  if (isSameOrigin && url.pathname.includes('/encargados/')) return;
+
+  const isScriptOrModule =
+    event.request.destination === 'script' || /\.m?js$/i.test(url.pathname);
+
+  // JS: red primero para no quedar pegados a módulos viejos.
   if (isSameOrigin && isScriptOrModule) {
     event.respondWith(
       fetch(event.request)

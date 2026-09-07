@@ -6,6 +6,7 @@
  * desde action=reports. Materializa A–B en Grupo N solo al guardar si falta la fila.
  *
  * Grupo (Fase 8): ?grupoId=1 (preferido) | legacy ?grupo=1 | ?grupo=Grupo%201
+ * Si la PWA abre sin query, se reusa el último grupoId recordado en este dispositivo.
  */
 
 import { getMonthlyReports, getPersonas, getSystemState } from './sheets.js';
@@ -15,6 +16,8 @@ import {
   renderEditableRow,
   seedPersonFromApi,
 } from '../../js/reports-editor.js';
+
+const GRUPO_STORAGE_KEY = 'informes-publicadores:encargados:grupoId';
 
 /** @type {{ grupoId: string, grupo: string, color: string, mes: string, periodo: string } | null} */
 let sessionContext = null;
@@ -46,9 +49,40 @@ function normalizeGrupoIdCandidate(raw) {
   return null;
 }
 
+function readStoredGrupoId() {
+  try {
+    return normalizeGrupoIdCandidate(localStorage.getItem(GRUPO_STORAGE_KEY) || '');
+  } catch {
+    return null;
+  }
+}
+
+function persistGrupoId(grupoId) {
+  try {
+    localStorage.setItem(GRUPO_STORAGE_KEY, grupoId);
+  } catch {
+    // Modo privado o cuota: el portal sigue funcionando con la URL.
+  }
+}
+
+function restoreGrupoQuery(grupoId) {
+  const params = new URLSearchParams(window.location.search);
+  const current = normalizeGrupoIdCandidate(
+    params.get('grupoId') || params.get('groupId') || params.get('grupo') || params.get('group') || '',
+  );
+  if (current === grupoId) return;
+  const next = new URL(window.location.href);
+  next.searchParams.delete('grupo');
+  next.searchParams.delete('group');
+  next.searchParams.delete('groupId');
+  next.searchParams.set('grupoId', grupoId);
+  history.replaceState(null, '', `${next.pathname}${next.search}${next.hash}`);
+}
+
 /**
  * Preferido: ?grupoId=1
  * Legacy: ?grupo=1 | ?grupo=Grupo 1 | ?group=…
+ * PWA: si no hay query, reusa el último grupoId de este dispositivo.
  */
 export function resolveGroupParam() {
   const params = new URLSearchParams(window.location.search);
@@ -65,29 +99,36 @@ export function resolveGroupParam() {
         message: `El parámetro grupoId "${rawId}" no es válido. Usá un ID numérico (ej. ?grupoId=1).`,
       };
     }
+    persistGrupoId(grupoId);
     return { ok: true, grupoId };
   }
 
-  if (!raw) {
-    return {
-      ok: false,
-      reason: 'missing',
-      raw: '',
-      message: 'Falta el parámetro de grupo. Abrí el portal con ?grupoId=1 (o legacy ?grupo=1).',
-    };
+  if (raw) {
+    const grupoId = normalizeGrupoIdCandidate(raw);
+    if (!grupoId) {
+      return {
+        ok: false,
+        reason: 'invalid',
+        raw,
+        message: `El parámetro grupo "${raw}" no es válido. Usá ?grupoId=1 o ?grupo=1.`,
+      };
+    }
+    persistGrupoId(grupoId);
+    return { ok: true, grupoId };
   }
 
-  const grupoId = normalizeGrupoIdCandidate(raw);
-  if (!grupoId) {
-    return {
-      ok: false,
-      reason: 'invalid',
-      raw,
-      message: `El parámetro grupo "${raw}" no es válido. Usá ?grupoId=1 o ?grupo=1.`,
-    };
+  const stored = readStoredGrupoId();
+  if (stored) {
+    restoreGrupoQuery(stored);
+    return { ok: true, grupoId: stored };
   }
 
-  return { ok: true, grupoId };
+  return {
+    ok: false,
+    reason: 'missing',
+    raw: '',
+    message: 'Falta el parámetro de grupo. Abrí el portal con ?grupoId=1 (o legacy ?grupo=1).',
+  };
 }
 
 function renderTable(people) {
@@ -323,3 +364,7 @@ async function init() {
 }
 
 void init();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js'));
+}
