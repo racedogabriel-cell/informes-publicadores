@@ -532,8 +532,9 @@
   padding-right: 2px;
 }
 
-/* Publicador con Horas = No: alerta visual */
-.encargados-table select.field-hours.hours-no {
+/* Publicador con Horas = No: alerta visual (select Encargados + celda consulta Informes) */
+.encargados-table select.field-hours.hours-no,
+.encargados-table td.col-hours.hours-no {
   background-color: #fdecec !important;
   color: var(--danger, #b42318) !important;
   font-weight: 700;

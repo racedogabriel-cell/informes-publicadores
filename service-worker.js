@@ -1,4 +1,4 @@
-const CACHE_NAME = 'informes-publicadores-v60';
+const CACHE_NAME = 'informes-publicadores-v61';
 const APP_SHELL = [
   './',
   './index.html',

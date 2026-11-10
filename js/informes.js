@@ -613,6 +613,7 @@ function renderSupervisionRow(report) {
   const slug = privilegeSlug(privilegio);
   const privilegeLabel = privilegio || '—';
   const hoursLabel = displayHours(report);
+  const hoursNoClass = hoursLabel === 'No' ? ' hours-no' : '';
   const studiesLabel = displayStudies(report);
   const rawComments = normalizeText(report?.comentarios);
   const hasComment = Boolean(rawComments);
@@ -629,7 +630,7 @@ function renderSupervisionRow(report) {
       <td class="col-privilege" data-label="Privilegio">
         <span class="privilege-chip privilege-${slug}">${escapeHtml(privilegeLabel)}</span>
       </td>
-      <td class="col-hours cell-value" data-label="Horas">${escapeHtml(hoursLabel)}</td>
+      <td class="col-hours cell-value${hoursNoClass}" data-label="Horas">${escapeHtml(hoursLabel)}</td>
       <td class="col-studies cell-value" data-label="Estudios">${escapeHtml(studiesLabel === '—' ? 'Est.' : studiesLabel)}</td>
       <td class="col-comments cell-value ${hasComment ? 'has-comment' : 'is-empty-comment'}" data-label="Comentarios">${escapeHtml(commentsLabel)}</td>
     </tr>`;
