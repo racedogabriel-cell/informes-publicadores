@@ -17,12 +17,12 @@
   --priv-none: #eef1ef;
   --priv-none-border: #c5cdc8;
   --priv-none-text: #66736b;
-  /* Tintes suaves: valor cerrado / chip de consulta (estilo Horas) */
-  --priv-publicador-soft: #f2f7fb;
-  --priv-auxiliar-soft: #faf6ee;
-  --priv-regular-soft: #f1f7f3;
-  --priv-inactivo-soft: #f5f3f8;
-  --priv-none-soft: transparent;
+  /* Tintes medios: valor cerrado / chip de consulta (legibles entre sí, sin botón) */
+  --priv-publicador-soft: #eaf4fb;
+  --priv-auxiliar-soft: #fbf3e3;
+  --priv-regular-soft: #eaf5ef;
+  --priv-inactivo-soft: #efeaf6;
+  --priv-none-soft: #eef1ef;
   --complete-dot: #2f9e6b;
   --editing-dot: #d69e2e;
   --empty-dot: #a8b2ac;
@@ -587,35 +587,35 @@
 .encargados-table .field-privilege.privilege-none,
 .encargados-table .privilege-chip.privilege-none {
   background-color: var(--priv-none-soft) !important;
-  border: 1px solid transparent !important;
+  border: 1px solid var(--priv-none-border) !important;
   color: var(--priv-none-text) !important;
 }
 
 .encargados-table .field-privilege.privilege-publicador,
 .encargados-table .privilege-chip.privilege-publicador {
   background-color: var(--priv-publicador-soft) !important;
-  border: 1px solid transparent !important;
+  border: 1px solid var(--priv-publicador-border) !important;
   color: var(--priv-publicador-text) !important;
 }
 
 .encargados-table .field-privilege.privilege-auxiliar,
 .encargados-table .privilege-chip.privilege-auxiliar {
   background-color: var(--priv-auxiliar-soft) !important;
-  border: 1px solid transparent !important;
+  border: 1px solid var(--priv-auxiliar-border) !important;
   color: var(--priv-auxiliar-text) !important;
 }
 
 .encargados-table .field-privilege.privilege-regular,
 .encargados-table .privilege-chip.privilege-regular {
   background-color: var(--priv-regular-soft) !important;
-  border: 1px solid transparent !important;
+  border: 1px solid var(--priv-regular-border) !important;
   color: var(--priv-regular-text) !important;
 }
 
 .encargados-table .field-privilege.privilege-inactivo,
 .encargados-table .privilege-chip.privilege-inactivo {
   background-color: var(--priv-inactivo-soft) !important;
-  border: 1px solid transparent !important;
+  border: 1px solid var(--priv-inactivo-border) !important;
   color: var(--priv-inactivo-text) !important;
 }
 
