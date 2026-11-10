@@ -614,7 +614,7 @@ function renderSupervisionRow(report) {
   const privilegeLabel = privilegio || '—';
   const hoursLabel = displayHours(report);
   const hoursNoClass = hoursLabel === 'No' ? ' hours-no' : '';
-  const studiesLabel = displayStudies(report);
+  const studiesLabel = displayStudiesConsulta(report);
   const rawComments = normalizeText(report?.comentarios);
   const hasComment = Boolean(rawComments);
   const commentsLabel = hasComment ? rawComments : '+';
@@ -631,7 +631,7 @@ function renderSupervisionRow(report) {
         <span class="privilege-chip privilege-${slug}">${escapeHtml(privilegeLabel)}</span>
       </td>
       <td class="col-hours cell-value" data-label="Horas"><span class="hours-value${hoursNoClass}">${escapeHtml(hoursLabel)}</span></td>
-      <td class="col-studies cell-value" data-label="Estudios">${escapeHtml(studiesLabel === '—' ? 'Est.' : studiesLabel)}</td>
+      <td class="col-studies cell-value" data-label="Estudios">${escapeHtml(studiesLabel)}</td>
       <td class="col-comments cell-value ${hasComment ? 'has-comment' : 'is-empty-comment'}" data-label="Comentarios">${escapeHtml(commentsLabel)}</td>
     </tr>`;
 }
@@ -709,6 +709,16 @@ function displayStudies(report) {
   const value = normalizeIntegerField(report?.estudios);
   if (/^\d+$/.test(value)) return value;
   return displayText(report?.estudios);
+}
+
+/** Modo consulta: null/vacío/0 → celda vacía (sin "—", "Est." ni "0"). */
+function displayStudiesConsulta(report) {
+  const value = normalizeIntegerField(report?.estudios);
+  if (!value || value === '0') return '';
+  if (/^\d+$/.test(value)) return value;
+  const text = normalizeText(report?.estudios);
+  if (!text || text === '0') return '';
+  return text;
 }
 
 function displayComments(report) {
