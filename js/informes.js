@@ -617,7 +617,7 @@ function renderSupervisionRow(report) {
   const studiesLabel = displayStudiesConsulta(report);
   const rawComments = normalizeText(report?.comentarios);
   const hasComment = Boolean(rawComments);
-  const commentsLabel = hasComment ? rawComments : '+';
+  const commentsLabel = hasComment ? rawComments : '';
 
   return `
     <tr class="${state}" data-privilege="${slug}">
@@ -632,7 +632,7 @@ function renderSupervisionRow(report) {
       </td>
       <td class="col-hours cell-value" data-label="Horas"><span class="hours-value${hoursNoClass}">${escapeHtml(hoursLabel)}</span></td>
       <td class="col-studies cell-value" data-label="Estudios">${escapeHtml(studiesLabel)}</td>
-      <td class="col-comments cell-value ${hasComment ? 'has-comment' : 'is-empty-comment'}" data-label="Comentarios">${escapeHtml(commentsLabel)}</td>
+      <td class="col-comments cell-value${hasComment ? ' has-comment' : ''}" data-label="Comentarios">${escapeHtml(commentsLabel)}</td>
     </tr>`;
 }
 
