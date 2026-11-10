@@ -532,9 +532,24 @@
   padding-right: 2px;
 }
 
-/* Publicador con Horas = No: alerta visual (select Encargados + celda consulta Informes) */
+/* Publicador con Horas = No: alerta visual (select Encargados + .hours-value consulta Informes) */
+.encargados-table .hours-value {
+  display: inline-block;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  text-align: center;
+  border-radius: 3px;
+  line-height: var(--density-chip-h);
+  height: var(--density-chip-h);
+}
+
 .encargados-table select.field-hours.hours-no,
-.encargados-table td.col-hours.hours-no {
+.encargados-table .hours-value.hours-no,
+.encargados-table tbody tr.is-empty td.col-hours.hours-no,
+.encargados-table tbody tr.is-editing td.col-hours.hours-no,
+.encargados-table tbody tr.is-complete td.col-hours.hours-no {
+  background: #fdecec !important;
   background-color: #fdecec !important;
   color: var(--danger, #b42318) !important;
   font-weight: 700;
@@ -542,6 +557,7 @@
 
 .encargados-table select.field-hours.hours-no:hover,
 .encargados-table select.field-hours.hours-no:focus {
+  background: #fce0e0 !important;
   background-color: #fce0e0 !important;
   color: var(--danger, #b42318) !important;
   outline: none;
@@ -853,6 +869,19 @@
   .encargados-table tbody tr.is-complete td {
     background: transparent !important;
     box-shadow: none;
+  }
+
+  /* Tras transparent en td: el rojo de Horas=No vive en el hijo (.hours-value / select) */
+  .encargados-table tbody tr.is-empty .hours-value.hours-no,
+  .encargados-table tbody tr.is-editing .hours-value.hours-no,
+  .encargados-table tbody tr.is-complete .hours-value.hours-no,
+  .encargados-table tbody tr.is-empty select.field-hours.hours-no,
+  .encargados-table tbody tr.is-editing select.field-hours.hours-no,
+  .encargados-table tbody tr.is-complete select.field-hours.hours-no {
+    background: #fdecec !important;
+    background-color: #fdecec !important;
+    color: var(--danger, #b42318) !important;
+    font-weight: 700;
   }
 
   .encargados-table tbody td.col-name.person-name,
