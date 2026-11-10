@@ -1,7 +1,7 @@
 ﻿/* Portal Encargados â€” auto-save, completitud, privilegios, responsive. */
 
 :root {
-  /* Colores densos: solo opciones del <select> desplegado */
+  /* Colores densos: chip cerrado, consulta y opciones del <select> */
   --priv-publicador: #d4e8f6;
   --priv-publicador-border: #6fa8cc;
   --priv-publicador-text: #174a6b;
@@ -17,12 +17,12 @@
   --priv-none: #eef1ef;
   --priv-none-border: #c5cdc8;
   --priv-none-text: #66736b;
-  /* Tintes medios: valor cerrado / chip de consulta (legibles entre sí, sin botón) */
-  --priv-publicador-soft: #eaf4fb;
-  --priv-auxiliar-soft: #fbf3e3;
-  --priv-regular-soft: #eaf5ef;
-  --priv-inactivo-soft: #efeaf6;
-  --priv-none-soft: #eef1ef;
+  /* Alias de valor cerrado / chip: mismos tintes densos (nitidez entre privilegios) */
+  --priv-publicador-soft: var(--priv-publicador);
+  --priv-auxiliar-soft: var(--priv-auxiliar);
+  --priv-regular-soft: var(--priv-regular);
+  --priv-inactivo-soft: var(--priv-inactivo);
+  --priv-none-soft: var(--priv-none);
   --complete-dot: #2f9e6b;
   --editing-dot: #d69e2e;
   --empty-dot: #a8b2ac;
