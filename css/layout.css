@@ -148,7 +148,7 @@
   display: none;
   position: fixed;
   inset: 0;
-  z-index: 4;
+  z-index: 55;
   background: rgb(17 34 28 / 35%);
   border: 0;
   padding: 0;
@@ -165,6 +165,7 @@
     position: fixed;
     left: 0;
     top: 0;
+    z-index: 60;
     width: min(240px, 82vw);
     transform: translateX(-100%);
     box-shadow: none;

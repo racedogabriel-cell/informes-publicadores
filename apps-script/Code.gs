@@ -582,21 +582,8 @@ function closePeriodLocked_() {
   }
 
   const historial = getOrCreateHistorialSheet_(spreadsheet);
-  if (historialHasPeriodo_(historial, periodo)) {
-    return {
-      ok: false,
-      error: 'El período ya está en Historial.',
-      message:
-        'Ya existen filas en Historial para el período ' +
-        periodo +
-        '. No se duplicó el archivo ni se modificó Sistema.',
-      periodo: periodo,
-    };
-  }
-
   const fechaCierre = new Date().toISOString();
-
-  appendHistorialRows_(historial, snapshot, fechaCierre);
+  const replaced = replaceOrAppendHistorialPeriodo_(historial, periodo, snapshot, fechaCierre);
   writeSistemaClose_(sistema, fechaCierre);
 
   return {
@@ -607,8 +594,10 @@ function closePeriodLocked_() {
     grupos: counts,
     gruposList: gruposList,
     archived: snapshot.length,
-    message:
-      'Período cerrado correctamente. Historial actualizado. Las hojas de grupo no fueron limpiadas.',
+    replaced: replaced,
+    message: replaced
+      ? 'Período rearchivado correctamente. Se reemplazaron las filas previas de Historial para este período.'
+      : 'Período cerrado correctamente. Historial actualizado.',
   };
 }
 
@@ -673,6 +662,58 @@ function historialHasPeriodo_(sheet, periodo) {
     if (String(values[i][0] || '').trim() === periodo) return true;
   }
   return false;
+}
+
+/**
+ * Cierre/rearchivo: si el período ya tiene filas en Historial, las reemplaza
+ * (solo ese período) y escribe el snapshot actual. Si no, hace append.
+ * @return {boolean} true si había filas previas del período y se reemplazaron
+ */
+function replaceOrAppendHistorialPeriodo_(sheet, periodo, snapshot, fechaCierre) {
+  ensureHistorialHeaders_(sheet);
+  var lastRow = sheet.getLastRow();
+  var kept = [];
+  var hadPeriodo = false;
+  var width = Math.max(sheet.getLastColumn(), HISTORIAL_HEADERS.length);
+
+  if (lastRow >= 2) {
+    var numRows = lastRow - 1;
+    var values = sheet.getRange(2, 1, numRows, width).getValues();
+    for (var i = 0; i < values.length; i++) {
+      if (String(values[i][0] || '').trim() === periodo) {
+        hadPeriodo = true;
+        continue;
+      }
+      var keptRow = [];
+      for (var c = 0; c < HISTORIAL_HEADERS.length; c++) {
+        keptRow.push(values[i][c] != null ? values[i][c] : '');
+      }
+      kept.push(keptRow);
+    }
+    sheet.getRange(2, 1, numRows, width).clearContent();
+  }
+
+  var newRows = (snapshot || []).map(function (item) {
+    return [
+      item.periodo,
+      String(item.grupoId || ''),
+      item.grupo,
+      item.id,
+      item.nombre,
+      item.privilegio,
+      item.horas,
+      item.estudios,
+      item.comentarios,
+      fechaCierre,
+    ];
+  });
+
+  var allRows = kept.concat(newRows);
+  if (allRows.length) {
+    sheet.getRange(2, 1, allRows.length, HISTORIAL_HEADERS.length).setValues(allRows);
+  }
+
+  return hadPeriodo;
 }
 
 function appendHistorialRows_(sheet, snapshot, fechaCierre) {

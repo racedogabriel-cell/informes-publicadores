@@ -1,5 +1,10 @@
-import { getMonthlyReports, getSystemState } from './sheets.js';
-import { calendarPeriodOptions, isEstadoAbierto, periodKeyToLabel } from './period.js';
+import { closePeriod, getMonthlyReports, getSystemState, openPeriod } from './sheets.js';
+import {
+  calendarPeriodOptions,
+  isEstadoAbierto,
+  periodKeyToLabel,
+  suggestedOpenPeriod,
+} from './period.js';
 import {
   completenessClass,
   isReportComplete,
@@ -28,6 +33,8 @@ let summaryOpen = false;
 let activeEditor = null;
 /** @type {object | null} */
 let viewSnapshot = null;
+/** @type {{ period: string, onPeriodChange: ((key: string) => void) | null }} */
+let bindContext = { period: '', onPeriodChange: null };
 
 export function availablePeriods() {
   return calendarPeriodOptions();
@@ -41,6 +48,7 @@ export function bindReports(period, onPeriodChange) {
   const root = document.querySelector('#informes-view');
   if (!root) return;
 
+  bindContext = { period, onPeriodChange };
   editMode = false;
   summaryOpen = false;
   destroyEditor();
@@ -58,6 +66,17 @@ export function bindReports(period, onPeriodChange) {
     if (summaryToggle) {
       summaryOpen = !summaryOpen;
       applySummaryOpenState();
+      return;
+    }
+
+    const closePeriodBtn = target.closest('#informes-close-period');
+    if (closePeriodBtn) {
+      handleClosePeriodFromSummary(closePeriodBtn);
+      return;
+    }
+
+    if (target.id === 'informes-open-period') {
+      handleOpenPeriodFromInformes(target);
       return;
     }
 
@@ -250,16 +269,23 @@ function renderCurrentView() {
     monthLabel,
     periods,
     systemEstado,
+    systemOpen,
     canEdit,
     generatedAt,
     reports,
   } = viewSnapshot;
 
   const groupStatuses = buildGroupStatusesFromReports(reports);
+  const openPeriodPanel = systemOpen
+    ? ''
+    : renderOpenPeriodPanel(viewSnapshot.systemKey || viewKey);
+  const showSummary = Boolean(systemOpen);
 
   if (!reports.length) {
     const emptySummary = buildPrivilegeSummary(reports);
+    const emptyProgress = buildSummaryProgress(reports);
     root.innerHTML = `
+      ${openPeriodPanel}
       ${renderMetaHeader(viewKey, {
         monthLabel,
         periods,
@@ -268,8 +294,13 @@ function renderCurrentView() {
         canEdit,
         editMode: false,
         summaryOpen,
-        showSummary: true,
-        summaryPanel: renderSummaryPanel(emptySummary, { open: summaryOpen }),
+        showSummary,
+        summaryPanel: showSummary
+          ? renderSummaryPanel(emptySummary, {
+              open: summaryOpen,
+              progress: emptyProgress,
+            })
+          : '',
       })}
       <p class="informes-empty muted">No hay informes para ${escapeHtml(monthLabel)}.</p>
     `;
@@ -278,8 +309,10 @@ function renderCurrentView() {
   }
 
   const summary = buildPrivilegeSummary(reports);
+  const progress = buildSummaryProgress(reports);
 
   root.innerHTML = `
+    ${openPeriodPanel}
     ${renderMetaHeader(viewKey, {
       monthLabel,
       periods,
@@ -288,8 +321,13 @@ function renderCurrentView() {
       canEdit,
       editMode,
       summaryOpen,
-      showSummary: true,
-      summaryPanel: renderSummaryPanel(summary, { open: summaryOpen }),
+      showSummary,
+      summaryPanel: showSummary
+        ? renderSummaryPanel(summary, {
+            open: summaryOpen,
+            progress,
+          })
+        : '',
     })}
     ${editMode ? renderEditableBoard(reports, groupStatuses) : renderReportsBoard(reports, groupStatuses)}
   `;
@@ -328,6 +366,124 @@ function syncSummaryFromEditor() {
   const reports = mergePeopleIntoReports(viewSnapshot.reports, people);
   viewSnapshot = { ...viewSnapshot, reports };
   paintPrivilegeSummary(buildPrivilegeSummary(reports));
+  paintSummaryProgress(buildSummaryProgress(reports));
+}
+
+async function handleClosePeriodFromSummary(button) {
+  if (!(button instanceof HTMLButtonElement) || button.disabled) return;
+  if (!viewSnapshot?.systemOpen) return;
+
+  const activeLabel = viewSnapshot.monthLabel || 'el período actual';
+  const confirmed = window.confirm(
+    `¿Cerrar ${activeLabel}?\n\nSe copiarán los informes a Historial y Sistema pasará a CERRADO.\nEsta acción no se puede deshacer desde la app.`,
+  );
+  if (!confirmed) return;
+
+  button.disabled = true;
+  paintSummaryProgressFeedback('Cerrando período…', 'info');
+
+  try {
+    const result = await closePeriod();
+    if (!result?.ok) {
+      paintSummaryProgressFeedback(
+        result?.message || result?.error || 'No se pudo cerrar el período.',
+        'error',
+      );
+      button.disabled = false;
+      return;
+    }
+
+    const reloadPeriod = viewSnapshot.viewKey || bindContext.period;
+    await loadReports(reloadPeriod, bindContext.onPeriodChange);
+    summaryOpen = true;
+    applySummaryOpenState();
+    paintSummaryProgressFeedback(
+      `${result.message || 'Período cerrado.'} Archivos: ${result.archived ?? '—'}.`,
+      'success',
+    );
+  } catch (error) {
+    paintSummaryProgressFeedback(error.message || 'No se pudo cerrar el período.', 'error');
+    button.disabled = false;
+  }
+}
+
+async function handleOpenPeriodFromInformes(button) {
+  if (!(button instanceof HTMLButtonElement) || button.disabled) return;
+
+  const periodo = String(
+    button.getAttribute('data-periodo') ||
+      document.querySelector('#informes-open-period-key')?.value ||
+      '',
+  ).trim();
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(periodo)) {
+    paintOpenPeriodFeedback('No hay un período siguiente válido para abrir.', 'error');
+    return;
+  }
+
+  button.disabled = true;
+  paintOpenPeriodFeedback('Abriendo período…', 'info');
+
+  try {
+    const result = await openPeriod(periodo);
+    if (!result?.ok) {
+      paintOpenPeriodFeedback(
+        result?.message || result?.error || 'No se pudo abrir el período.',
+        'error',
+      );
+      button.disabled = false;
+      return;
+    }
+
+    paintOpenPeriodFeedback(result.message || 'Período abierto correctamente.', 'success');
+    if (typeof bindContext.onPeriodChange === 'function') {
+      bindContext.onPeriodChange(periodo);
+      return;
+    }
+    await loadReports(periodo, null);
+  } catch (error) {
+    paintOpenPeriodFeedback(error.message || 'No se pudo abrir el período.', 'error');
+    button.disabled = false;
+  }
+}
+
+function paintOpenPeriodFeedback(message, tone = 'info') {
+  const feedback = document.querySelector('#informes-open-period-feedback');
+  if (!(feedback instanceof HTMLElement)) return;
+  feedback.hidden = false;
+  feedback.dataset.tone = tone;
+  feedback.textContent = message;
+}
+
+function renderOpenPeriodPanel(lastClosedKey) {
+  const suggested = suggestedOpenPeriod(lastClosedKey);
+  if (!suggested) {
+    return `
+      <section class="informes-open-period" aria-label="Abrir nuevo período">
+        <p class="informes-open-period-title">No hay un período abierto</p>
+        <p class="informes-open-period-feedback" data-tone="error" role="status">
+          No se pudo determinar el mes siguiente a abrir.
+        </p>
+      </section>
+    `;
+  }
+
+  return `
+    <section class="informes-open-period" aria-label="Abrir nuevo período">
+      <div class="informes-open-period-row">
+        <p class="informes-open-period-title">No hay un período abierto</p>
+        <input type="hidden" id="informes-open-period-key" value="${escapeHtml(suggested.key)}" />
+        <button
+          type="button"
+          class="button"
+          id="informes-open-period"
+          data-periodo="${escapeHtml(suggested.key)}"
+        >
+          Abrir ${escapeHtml(suggested.label)}
+        </button>
+      </div>
+      <p id="informes-open-period-feedback" class="informes-open-period-feedback" hidden role="status"></p>
+    </section>
+  `;
 }
 
 function applySummaryOpenState() {
@@ -361,7 +517,77 @@ function paintPrivilegeSummary(summary) {
   });
 }
 
-function renderSummaryPanel(summary, { open = false } = {}) {
+function buildSummaryProgress(reports) {
+  const total = reports.length;
+  const completed = reports.filter((report) => isReportComplete(report)).length;
+  const pending = Math.max(total - completed, 0);
+  const complete = total > 0 && pending === 0;
+  const canClose = complete && Boolean(viewSnapshot?.systemOpen);
+  return { total, completed, pending, complete, canClose };
+}
+
+function renderSummaryProgress(progress) {
+  if (!progress.complete) {
+    const label = progress.pending === 1 ? 'informe' : 'informes';
+    return `
+      <div class="informes-summary-progress is-incomplete" data-summary-progress>
+        <p class="informes-summary-progress-text">
+          Resumen incompleto, aún faltan completar
+          <strong data-summary-pending>${progress.pending}</strong> ${label}.
+        </p>
+      </div>
+    `;
+  }
+
+  if (progress.canClose) {
+    return `
+      <div class="informes-summary-progress is-complete" data-summary-progress>
+        <p class="informes-summary-progress-text">
+          Resumen completo, luego de enviarlo puede
+          <button type="button" id="informes-close-period" class="informes-summary-close">
+            Cerrar y archivar
+          </button>
+          el período.
+        </p>
+        <p class="informes-summary-progress-feedback" data-summary-progress-feedback hidden role="status"></p>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="informes-summary-progress is-complete" data-summary-progress>
+      <p class="informes-summary-progress-text">
+        Resumen completo. El período ya está cerrado.
+      </p>
+      <p class="informes-summary-progress-feedback" data-summary-progress-feedback hidden role="status"></p>
+    </div>
+  `;
+}
+
+function paintSummaryProgress(progress) {
+  const host = document.querySelector('[data-summary-progress]');
+  if (!(host instanceof HTMLElement)) return;
+  host.outerHTML = renderSummaryProgress(progress).trim();
+}
+
+function paintSummaryProgressFeedback(message, tone = 'info') {
+  let feedback = document.querySelector('[data-summary-progress-feedback]');
+  const host = document.querySelector('[data-summary-progress]');
+  if (!(feedback instanceof HTMLElement) && host instanceof HTMLElement) {
+    feedback = document.createElement('p');
+    feedback.className = 'informes-summary-progress-feedback';
+    feedback.setAttribute('data-summary-progress-feedback', '');
+    feedback.setAttribute('role', 'status');
+    host.appendChild(feedback);
+  }
+  if (!(feedback instanceof HTMLElement)) return;
+  feedback.hidden = false;
+  feedback.dataset.tone = tone;
+  feedback.textContent = message;
+}
+
+function renderSummaryPanel(summary, { open = false, progress = null } = {}) {
+  const progressBlock = progress ? renderSummaryProgress(progress) : '';
   return `
     <section
       id="informes-summary-panel"
@@ -398,6 +624,7 @@ function renderSummaryPanel(summary, { open = false } = {}) {
           </dl>
         </article>
       </div>
+      ${progressBlock}
     </section>
   `;
 }

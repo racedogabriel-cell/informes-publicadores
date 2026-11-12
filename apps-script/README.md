@@ -27,7 +27,7 @@ Este script atiende:
 | `?action=system` | Estado global de la hoja `Sistema` |
 | `?action=historial&periodo=YYYY-MM` | Lectura solo consulta del `Historial` (o período activo si aún no está archivado) |
 | `?action=openPeriod&periodo=YYYY-MM` | Abrir período (Portal General). Valida todo antes de escribir; LockService; no regenera si hay datos sin cierre formal. |
-| `?action=closePeriod` | Cerrar período: copia a Historial y marca Sistema CERRADO. No limpia hojas de grupo. |
+| `?action=closePeriod` | Cerrar período: copia/reemplaza Historial del período y marca Sistema CERRADO. |
 | `?action=personas` | Padrón completo A–H (Portal General / módulo Personas). |
 | `?action=grupos` | Catálogo de grupos (`Grupos`: id, nombre, color, activo). |
 | `?action=grupos&activos=1` | Solo grupos con `Activo = Sí`. |
@@ -84,10 +84,12 @@ Respuesta incluye `grupos` (mapa por nombre/SheetKey) y `gruposList` (`[{ id, no
 1. Adquiere `LockService`.
 2. Exige `EstadoPeriodo = ABIERTO` y `PeriodoActivo` definido.
 3. Lee registros válidos (ID + Nombre) de cada hoja SheetKey existente del catálogo.
-4. Si el período ya existe en `Historial` → error, sin duplicar.
-5. Append a `Historial` (Periodo, **GrupoID**, Grupo=nombre congelado, ID, Nombre, Privilegio, Horas, Estudios, Comentarios, FechaCierre).
-6. Actualiza `Sistema`: `EstadoPeriodo = CERRADO`, `FechaCierre`.
-7. **No** limpia hojas de grupo. **No** abre el siguiente período.
+4. Escribe el snapshot en `Historial` (Periodo, **GrupoID**, Grupo=nombre congelado, ID, Nombre, Privilegio, Horas, Estudios, Comentarios, FechaCierre).
+   - Si el período **no** tenía filas → append.
+   - Si el período **ya** tenía filas → las **reemplaza** (solo ese período; no toca otros meses) y luego cierra.
+5. Actualiza `Sistema`: `EstadoPeriodo = CERRADO`, `FechaCierre`.
+6. **No** abre el siguiente período.
+7. La respuesta incluye `replaced: true|false` según haya rearchivado.
 
 Filas históricas previas a Fase 6: al primer cierre nuevo se inserta la columna `GrupoID` vacía en esas filas (**sin backfill**). Los nombres congelados en `Grupo` no se modifican.
 

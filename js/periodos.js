@@ -117,7 +117,7 @@ export function bindPeriods() {
       const activeLabel =
         root.querySelector('.periodos-active-label')?.textContent?.trim() || 'el período actual';
       const confirmed = window.confirm(
-        `¿Cerrar ${activeLabel}?\n\nSe copiarán los informes a Historial y Sistema pasará a CERRADO.\nLas hojas de grupo del período no se limpian.\nEsta acción no se puede deshacer desde la app.`,
+        `¿Cerrar ${activeLabel}?\n\nSe copiarán los informes a Historial y Sistema pasará a CERRADO.\nEsta acción no se puede deshacer desde la app.`,
       );
       if (!confirmed) return;
 
@@ -333,7 +333,7 @@ function renderPeriodsScreen(root, system, lastResult) {
             })()
       }
       <p class="periodos-note muted">
-        Cerrar período archiva las hojas de grupo en Historial y marca Sistema como CERRADO. No limpia las hojas de trabajo ni abre el siguiente mes.
+        Cerrar período archiva los informes en Historial y marca Sistema como CERRADO. No abre el siguiente mes.
       </p>
     </section>
   `;
