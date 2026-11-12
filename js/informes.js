@@ -370,31 +370,31 @@ function renderSummaryPanel(summary, { open = false } = {}) {
       ${open ? '' : 'hidden'}
     >
       <div class="informes-summary-activos">
-        <span class="informes-summary-activos-label">Publicadores activos</span>
+        <span class="informes-summary-activos-label">Todos los publicadores activos</span>
         <strong data-summary="activos">${summary.publicadoresActivos}</strong>
       </div>
       <div class="informes-summary-grid">
         <article class="informes-summary-card is-publicador">
           <h3 class="informes-summary-title">Publicadores</h3>
           <dl class="informes-summary-stats">
-            <div><dt>Cantidad</dt><dd data-summary="pub-cantidad">${summary.publicadores.cantidad}</dd></div>
-            <div><dt>Estudios</dt><dd data-summary="pub-estudios">${summary.publicadores.estudios}</dd></div>
+            <div><dt>Cantidad de informes</dt><dd data-summary="pub-cantidad">${summary.publicadores.cantidad}</dd></div>
+            <div><dt>Cursos biblicos</dt><dd data-summary="pub-estudios">${summary.publicadores.estudios}</dd></div>
           </dl>
         </article>
         <article class="informes-summary-card is-auxiliar">
-          <h3 class="informes-summary-title">Auxiliar</h3>
+          <h3 class="informes-summary-title">Precursores auxiliares</h3>
           <dl class="informes-summary-stats">
-            <div><dt>Cantidad</dt><dd data-summary="aux-cantidad">${summary.auxiliares.cantidad}</dd></div>
+            <div><dt>Cantidad de informes</dt><dd data-summary="aux-cantidad">${summary.auxiliares.cantidad}</dd></div>
             <div><dt>Horas</dt><dd data-summary="aux-horas">${summary.auxiliares.horas}</dd></div>
-            <div><dt>Estudios</dt><dd data-summary="aux-estudios">${summary.auxiliares.estudios}</dd></div>
+            <div><dt>Cursos biblicos</dt><dd data-summary="aux-estudios">${summary.auxiliares.estudios}</dd></div>
           </dl>
         </article>
         <article class="informes-summary-card is-regular">
-          <h3 class="informes-summary-title">Regular</h3>
+          <h3 class="informes-summary-title">Precursores regulares</h3>
           <dl class="informes-summary-stats">
-            <div><dt>Cantidad</dt><dd data-summary="reg-cantidad">${summary.regulares.cantidad}</dd></div>
+            <div><dt>Cantidad de informes</dt><dd data-summary="reg-cantidad">${summary.regulares.cantidad}</dd></div>
             <div><dt>Horas</dt><dd data-summary="reg-horas">${summary.regulares.horas}</dd></div>
-            <div><dt>Estudios</dt><dd data-summary="reg-estudios">${summary.regulares.estudios}</dd></div>
+            <div><dt>Cursos biblicos</dt><dd data-summary="reg-estudios">${summary.regulares.estudios}</dd></div>
           </dl>
         </article>
       </div>
