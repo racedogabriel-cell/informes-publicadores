@@ -71,12 +71,18 @@
 }
 
 .informes-summary-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 30;
   display: grid;
-  gap: 8px;
-  padding: 8px 10px;
+  gap: 6px;
+  width: min(15.5rem, calc(100vw - 1.5rem));
+  padding: 8px;
   border: 1px solid var(--line);
   border-radius: 10px;
   background: #f7faf8;
+  box-shadow: 0 10px 28px rgb(16 42 34 / 14%);
 }
 
 .informes-summary-panel[hidden] {
@@ -85,12 +91,12 @@
 
 .informes-summary-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  grid-template-columns: 1fr;
+  gap: 6px;
 }
 
 .informes-summary-card {
-  padding: 8px 10px;
+  padding: 7px 9px;
   border-radius: 8px;
   border: 1px solid transparent;
   background: #fff;
@@ -113,8 +119,8 @@
 }
 
 .informes-summary-title {
-  margin: 0 0 6px;
-  font-size: 0.72rem;
+  margin: 0 0 5px;
+  font-size: 0.7rem;
   font-weight: 750;
   letter-spacing: 0.03em;
   text-transform: uppercase;
@@ -124,7 +130,7 @@
 .informes-summary-stats {
   margin: 0;
   display: grid;
-  gap: 3px;
+  gap: 2px;
 }
 
 .informes-summary-stats > div {
@@ -137,13 +143,13 @@
 .informes-summary-stats dt {
   margin: 0;
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 650;
 }
 
 .informes-summary-stats dd {
   margin: 0;
-  font-size: 0.92rem;
+  font-size: 0.88rem;
   font-weight: 750;
   font-variant-numeric: tabular-nums;
   color: var(--ink);
@@ -154,14 +160,14 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 7px 10px;
+  padding: 7px 9px;
   border-radius: 8px;
   border: 1px solid #d7a3a0;
   background: #f8eaea;
 }
 
 .informes-summary-activos-label {
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 750;
   letter-spacing: 0.03em;
   text-transform: uppercase;
@@ -169,38 +175,21 @@
 }
 
 .informes-summary-activos strong {
-  font-size: 1.05rem;
+  font-size: 1rem;
   font-weight: 750;
   font-variant-numeric: tabular-nums;
   color: #7a3030;
 }
 
-@media (max-width: 900px) {
-  .informes-summary-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .informes-summary-card.is-regular {
-    grid-column: 1 / -1;
-  }
-}
-
 @media (max-width: 700px) {
-  .informes-summary-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .informes-summary-card.is-regular {
-    grid-column: auto;
-  }
-
   .informes-summary-panel {
-    padding: 7px 8px;
-    gap: 6px;
+    width: min(14.5rem, calc(100vw - 1rem));
+    padding: 7px;
+    gap: 5px;
   }
 
   .informes-summary-stats dd {
-    font-size: 0.88rem;
+    font-size: 0.84rem;
   }
 }
 
@@ -375,10 +364,13 @@
 .informes-estado.is-closed { color: var(--muted); }
 
 .informes-meta-actions {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: flex-end;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .informes-sync-meta {
@@ -429,25 +421,29 @@
 }
 
 .informes-table .col-group {
-  width: 52px;
+  width: 2.55rem;
   text-align: center;
   white-space: nowrap;
 }
 
 .informes-table .col-name {
-  width: 36%;
+  width: 30%;
 }
 
 .informes-table .col-privilege {
-  width: 112px;
+  width: 6.4rem;
 }
 
 .informes-table .col-hours {
-  width: 64px;
+  width: 2.75rem;
 }
 
 .informes-table .col-studies {
-  width: 52px;
+  width: 2.25rem;
+}
+
+.informes-table .col-comments {
+  width: auto;
 }
 
 /* Consulta: mismas celdas densas que Encargados.
@@ -524,8 +520,9 @@
   }
 
   .informes-meta-actions {
-    width: 100%;
-    justify-content: space-between;
+    width: auto;
+    margin-left: auto;
+    justify-content: flex-end;
   }
 
   .informes-meta-actions .button {

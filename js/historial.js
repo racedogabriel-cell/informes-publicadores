@@ -134,8 +134,8 @@ function renderHistorialView(snapshot) {
         generatedAt,
         summaryOpen,
         showSummary: true,
+        summaryPanel: renderSummaryPanel(summary, { open: summaryOpen }),
       })}
-      ${renderSummaryPanel(summary, { open: summaryOpen })}
       <p class="informes-empty muted">No hay informes en el Historial para ${escapeHtml(monthLabel)}.</p>
     `;
     applySummaryOpenState();
@@ -149,8 +149,8 @@ function renderHistorialView(snapshot) {
       generatedAt,
       summaryOpen,
       showSummary: true,
+      summaryPanel: renderSummaryPanel(summary, { open: summaryOpen }),
     })}
-    ${renderSummaryPanel(summary, { open: summaryOpen })}
     ${renderReportsBoard(reports, groupStatuses)}
   `;
   applySummaryOpenState();
@@ -177,6 +177,10 @@ function renderSummaryPanel(summary, { open = false } = {}) {
       aria-label="Resumen de privilegios del período"
       ${open ? '' : 'hidden'}
     >
+      <div class="informes-summary-activos">
+        <span class="informes-summary-activos-label">Publicadores activos</span>
+        <strong>${summary.publicadoresActivos}</strong>
+      </div>
       <div class="informes-summary-grid">
         <article class="informes-summary-card is-publicador">
           <h3 class="informes-summary-title">Publicadores</h3>
@@ -201,10 +205,6 @@ function renderSummaryPanel(summary, { open = false } = {}) {
             <div><dt>Estudios</dt><dd>${summary.regulares.estudios}</dd></div>
           </dl>
         </article>
-      </div>
-      <div class="informes-summary-activos">
-        <span class="informes-summary-activos-label">Publicadores activos</span>
-        <strong>${summary.publicadoresActivos}</strong>
       </div>
     </section>
   `;
@@ -236,12 +236,6 @@ function renderMetaHeader(period, state = {}) {
       </span>
     `;
 
-  const syncMeta = state.generatedAt
-    ? `<span class="informes-sync-meta muted">${escapeHtml(state.generatedAt)}</span>`
-    : state.loading
-      ? `<span class="informes-sync-meta muted">Cargando…</span>`
-      : '';
-
   const summaryToggle = state.showSummary
     ? `<button
         type="button"
@@ -261,11 +255,11 @@ function renderMetaHeader(period, state = {}) {
         <div class="informes-meta-chips" aria-label="Contexto del período">
           ${periodControl}
           ${modoChip}
-          ${summaryToggle}
         </div>
       </div>
       <div class="informes-meta-actions">
-        ${syncMeta}
+        ${summaryToggle}
+        ${state.summaryPanel || ''}
       </div>
     </header>
   `;

@@ -258,6 +258,7 @@ function renderCurrentView() {
   const groupStatuses = buildGroupStatusesFromReports(reports);
 
   if (!reports.length) {
+    const emptySummary = buildPrivilegeSummary(reports);
     root.innerHTML = `
       ${renderMetaHeader(viewKey, {
         monthLabel,
@@ -268,8 +269,8 @@ function renderCurrentView() {
         editMode: false,
         summaryOpen,
         showSummary: true,
+        summaryPanel: renderSummaryPanel(emptySummary, { open: summaryOpen }),
       })}
-      ${renderSummaryPanel(buildPrivilegeSummary(reports), { open: summaryOpen })}
       <p class="informes-empty muted">No hay informes para ${escapeHtml(monthLabel)}.</p>
     `;
     applySummaryOpenState();
@@ -288,8 +289,8 @@ function renderCurrentView() {
       editMode,
       summaryOpen,
       showSummary: true,
+      summaryPanel: renderSummaryPanel(summary, { open: summaryOpen }),
     })}
-    ${renderSummaryPanel(summary, { open: summaryOpen })}
     ${editMode ? renderEditableBoard(reports, groupStatuses) : renderReportsBoard(reports, groupStatuses)}
   `;
 
@@ -368,6 +369,10 @@ function renderSummaryPanel(summary, { open = false } = {}) {
       aria-label="Resumen de privilegios del período"
       ${open ? '' : 'hidden'}
     >
+      <div class="informes-summary-activos">
+        <span class="informes-summary-activos-label">Publicadores activos</span>
+        <strong data-summary="activos">${summary.publicadoresActivos}</strong>
+      </div>
       <div class="informes-summary-grid">
         <article class="informes-summary-card is-publicador">
           <h3 class="informes-summary-title">Publicadores</h3>
@@ -392,10 +397,6 @@ function renderSummaryPanel(summary, { open = false } = {}) {
             <div><dt>Estudios</dt><dd data-summary="reg-estudios">${summary.regulares.estudios}</dd></div>
           </dl>
         </article>
-      </div>
-      <div class="informes-summary-activos">
-        <span class="informes-summary-activos-label">Publicadores activos</span>
-        <strong data-summary="activos">${summary.publicadoresActivos}</strong>
       </div>
     </section>
   `;
@@ -456,12 +457,6 @@ function renderMetaHeader(period, state = {}) {
     `;
   }
 
-  const syncMeta = state.generatedAt
-    ? `<span class="informes-sync-meta muted">${escapeHtml(state.generatedAt)}</span>`
-    : state.loading
-      ? `<span class="informes-sync-meta muted">Cargando…</span>`
-      : '';
-
   const modeOn = Boolean(state.editMode);
   const canEdit = Boolean(state.canEdit);
   const editControl =
@@ -506,11 +501,11 @@ function renderMetaHeader(period, state = {}) {
           ${periodControl}
           ${estadoChip}
           ${editControl}
-          ${summaryToggle}
         </div>
       </div>
       <div class="informes-meta-actions">
-        ${syncMeta}
+        ${summaryToggle}
+        ${state.summaryPanel || ''}
       </div>
     </header>
   `;
